@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Millican Insurance Agency Portal V5.1.2.1</title>
+<title>Millican Insurance Agency Portal V5.2.2.1</title>
 <style>
 :root{--navy:#062f58;--navy2:#021e3a;--green:#8ee737;--blue:#1682e6;--bg:#f4f7fb;--line:#dce5ef;--red:#c72c41;--gold:#d39a1f}
 *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#082a50}
@@ -197,7 +197,7 @@ function renderDashboard(){
  <div class="card"><div class="num blue">${currentUser.role==='admin'?activeAgents().length:carriers.filter(c=>c.assigned.includes(currentUser.id)).length}</div><b>${currentUser.role==='admin'?'Active Agents':'Assigned Carriers'}</b></div>
  </section>
  <div class="grid">
- <section class="panel"><div class="title">${currentUser.role==='admin'?'Recent Leads':'My Leads'} <button class="btn small" style="float:right" onclick="openLead()">+ New Lead</button></div>${leadTable(ls.slice(0,6))}</section>
+ <section class="panel"><div class="title">${currentUser.role==='admin'?'Recent Leads':'My Leads'} <button class="btn small" style="float:right" onclick="openLead()">+ Add Lead</button></div>${leadTable(ls.slice(0,6))}</section>
  <section class="panel"><div class="title">${currentUser.role==='admin'?'Agent Snapshot':'Training'}</div>${currentUser.role==='admin'?agentSnapshot():trainingSnapshot()}</section>
  <section class="panel"><div class="title">${currentUser.role==='admin'?'Admin Shortcuts':'Carrier Readiness'}</div>${currentUser.role==='admin'?`<div class="links"><div class="link" onclick="showView('assign')">Assign Leads</div><div class="link" onclick="showView('agents')">Manage Agents</div><div class="link" onclick="showView('training')">Training</div><div class="link" onclick="showView('carriers')">Carriers</div></div>`:carrierSnapshot()}</section>
  </div>`;

@@ -1,21 +1,22 @@
-MILLICAN AGENCY PORTAL V6.0 — LEAD INTAKE
+Millican Agency Portal V6.1 - Integrated Medicare Fact Finder
 
-1. In Supabase SQL Editor, run V6_DATABASE_MIGRATION.sql ONCE.
+INSTALL ORDER
+1. Supabase > SQL Editor: run V6_1_DATABASE_MIGRATION.sql once.
 2. Confirm: Success. No rows returned.
-3. Upload index.html to GitHub, replacing the current index.html.
-4. Let GitHub Pages deploy, then hard-refresh the portal.
+3. Replace the GitHub Pages index.html with this V6.1 index.html.
+4. Keep your existing logo.png unchanged.
+5. Let GitHub Pages deploy, then hard refresh the portal (Ctrl+Shift+R).
 
-V6 adds:
-- Agency Lead Inbox
-- Lead Source
-- Campaign / Event
-- Source Detail
-- New Intake vs Returned lead counts
-- Source filtering/search
-- Assignment only to active Lead Co-op members
-- Admin manual intake feeds the same inbox
-- Agent-created leads remain personal and bypass the Agency Lead Inbox
+TEST
+1. Open an EXISTING assigned lead.
+2. Click Fact Finder.
+3. Name and phone should prefill from the lead.
+4. Complete a few fields and click Save Fact Finder.
+5. Close/reopen the lead and confirm the data reloads.
+6. Click Download Fact Finder PDF and confirm the one-page PDF downloads.
 
-IMPORTANT:
-This version does NOT yet open the database to Meta or public web forms.
-That connection should use a secure server-side intake endpoint, not a public anonymous INSERT policy.
+SECURITY
+- Fact Finder data is stored separately from normal lead-list data.
+- RLS allows admins or the currently assigned agent to read/write the Fact Finder.
+- SSN, Medicare ID and Medicaid ID are not queried for dashboard/list views.
+- No anonymous/public policy is created.

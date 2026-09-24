@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Millican Insurance Agency Portal V6.0</title>
+<title>Millican Insurance Agency Portal V6.1</title>
 <style>
 :root{--navy:#062f58;--navy2:#021e3a;--green:#8ee737;--blue:#1682e6;--bg:#f4f7fb;--line:#dce5ef;--red:#c72c41;--gold:#d39a1f}
 *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#082a50}
@@ -33,10 +33,12 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#f5faff}.pill{padding:
 .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.span2{grid-column:1/-1}
 .agent-list{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.agent-card{border:1px solid var(--line);border-radius:10px;padding:14px}.tag{font-size:12px;padding:3px 7px;border-radius:5px;background:#edf3f8}
 .resource{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--line);padding:12px;border-radius:9px;margin:9px 0}
+.tabs{display:flex;gap:6px;margin:14px 0;border-bottom:1px solid var(--line)}.tab{padding:10px 14px;border:0;background:transparent;font-weight:800;cursor:pointer;color:#526b83}.tab.active{color:var(--navy);border-bottom:3px solid var(--green)}.tabpane{display:none}.tabpane.active{display:block}.sensitive{background:#fff8e8;border:1px solid #f1d79a;border-radius:9px;padding:10px;margin:10px 0;font-size:12px;color:#6a5422}
 @media(max-width:1050px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:190px 1fr}.top{background:#06335e}.logo{background:white;border-radius:8px;padding:4px}}
 @media(max-width:720px){.layout{grid-template-columns:1fr}.side{min-height:auto}.cards,.agent-list,.formgrid{grid-template-columns:1fr}.top{height:auto;flex-wrap:wrap}.user{margin-left:0}.span2{grid-column:auto}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
 <section id="loginScreen" class="login-wrap">
@@ -235,66 +237,62 @@ function renderLeadsFiltered(){
  let ls=scopedLeads().filter(l=>(!q||l.name.toLowerCase().includes(q)||l.phone.includes(q))&&(!s||l.status===s));
  document.getElementById('leadTableWrap').innerHTML=leadTable(ls);
 }
+function switchLeadTab(tab){
+ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
+ document.querySelectorAll('.tabpane').forEach(x=>x.classList.toggle('active',x.id==='tab-'+tab));
+ if(tab==='factfinder') loadFactFinderIntoForm();
+}
+let openLeadRecord=null, openFactFinder=null;
+async function fetchFactFinder(l){
+ if(!l?.dbid)return null;
+ const {data,error}=await sb.from('fact_finders').select('*').eq('lead_id',l.dbid).maybeSingle();
+ if(error){alert('Could not load Fact Finder: '+error.message);return null}
+ return data;
+}
+function ffVal(id){return (document.getElementById(id)?.value||'').trim()}
+async function loadFactFinderIntoForm(){
+ const l=openLeadRecord;if(!l||!l.dbid)return;
+ openFactFinder=await fetchFactFinder(l)||{};
+ const f=openFactFinder;
+ const vals={ffName:f.prospect_name||l.name||'',ffDate:f.intake_date||'',ffAddress:f.address||'',ffPhone:f.phone||l.phone||'',ffCounty:f.county||'',ffBirthdate:f.birthdate||'',ffSSN:f.ssn||'',ffMedicare:f.medicare_id||'',ffPartA:f.part_a_effective||'',ffPartB:f.part_b_effective||'',ffScope:f.scope_number||'',ffVerification:f.verification_number||'',ffHRA:f.hra||'',ffLIS:f.lis_verification||'',ffMedicaidVerification:f.medicaid_verification||'',ffMedicaid:f.medicaid_number||'',ffDoctor:f.doctor_name||'',ffCompany:f.company||'',ffPlan:f.plan||'',ffEffective:f.plan_effective_date||'',ffRewrite:f.rewrite_change_reason||''};
+ Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v||''});
+}
+async function saveFactFinder(silent=false){
+ const l=openLeadRecord;if(!l?.dbid){alert('Save the lead before completing its Fact Finder.');return false}
+ const payload={lead_id:l.dbid,prospect_name:ffVal('ffName')||l.name,intake_date:ffVal('ffDate')||null,address:ffVal('ffAddress')||null,phone:ffVal('ffPhone')||l.phone||null,county:ffVal('ffCounty')||null,birthdate:ffVal('ffBirthdate')||null,ssn:ffVal('ffSSN')||null,medicare_id:ffVal('ffMedicare')||null,part_a_effective:ffVal('ffPartA')||null,part_b_effective:ffVal('ffPartB')||null,scope_number:ffVal('ffScope')||null,verification_number:ffVal('ffVerification')||null,hra:ffVal('ffHRA')||null,lis_verification:ffVal('ffLIS')||null,medicaid_verification:ffVal('ffMedicaidVerification')||null,medicaid_number:ffVal('ffMedicaid')||null,doctor_name:ffVal('ffDoctor')||null,company:ffVal('ffCompany')||null,plan:ffVal('ffPlan')||null,plan_effective_date:ffVal('ffEffective')||null,rewrite_change_reason:ffVal('ffRewrite')||null,updated_by:currentUser.id};
+ const {data:existing,error:e1}=await sb.from('fact_finders').select('id').eq('lead_id',l.dbid).maybeSingle();
+ if(e1){alert('Could not save Fact Finder: '+e1.message);return false}
+ const result=existing?.id?await sb.from('fact_finders').update(payload).eq('id',existing.id):await sb.from('fact_finders').insert({...payload,created_by:currentUser.id});
+ if(result.error){alert('Could not save Fact Finder: '+result.error.message);return false}
+ openFactFinder=payload;if(!silent)alert('Fact Finder saved.');return true;
+}
+async function downloadFactFinderPDF(){
+ if(!(await saveFactFinder(true)))return;
+ const {jsPDF}=window.jspdf, doc=new jsPDF({unit:'pt',format:'letter'});
+ const v=id=>ffVal(id)||'—'; let y=55;
+ doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('Medicare Enrollment Information',40,y);y+=24;
+ doc.setFontSize(11);doc.setTextColor(25,70,110);doc.text('Millican Insurance Agency - Fact Finder',40,y);doc.setTextColor(0,0,0);y+=28;
+ function section(t){doc.setFillColor(6,47,88);doc.rect(40,y-13,532,20,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text(t,48,y);doc.setTextColor(0,0,0);y+=18}
+ function row(a,b='',c='',d=''){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(a,48,y);doc.setFont('helvetica','bold');doc.text(b,145,y,{maxWidth:150});if(c){doc.setFont('helvetica','normal');doc.text(c,315,y);doc.setFont('helvetica','bold');doc.text(d,405,y,{maxWidth:160})}y+=22;doc.setDrawColor(220);doc.line(48,y-15,564,y-15)}
+ section('PROSPECT INFORMATION');row('Name',v('ffName'),'Date',v('ffDate'));row('Address',v('ffAddress'));row('Phone',v('ffPhone'),'County',v('ffCounty'));row('Birthdate',v('ffBirthdate'),'SSN',v('ffSSN'));row('Medicare ID #',v('ffMedicare'));row('Part A Effective',v('ffPartA'),'Part B Effective',v('ffPartB'));
+ y+=4;section('ELIGIBILITY & VERIFICATION');row('Scope #',v('ffScope'),'Verification #',v('ffVerification'));row('HRA',v('ffHRA'),'LIS Verification',v('ffLIS'));row('Medicaid Verification',v('ffMedicaidVerification'),'Medicaid #',v('ffMedicaid'));
+ y+=4;section('PROVIDER INFORMATION');row('Doctor Name',v('ffDoctor'));
+ y+=4;section('PLAN ENROLLMENT DETAILS');row('Company',v('ffCompany'),'Plan',v('ffPlan'));row('Effective Date',v('ffEffective'));row('Rewrite / Change Reason',v('ffRewrite'));
+ doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(100);doc.text('Generated from the secure Millican Agency Portal.',40,750);
+ const safe=(v('ffName')==='—'?'Fact_Finder':v('ffName')).replace(/[^a-z0-9]+/gi,'_').replace(/^_|_$/g,'');doc.save(safe+'_Medicare_Fact_Finder.pdf');
+}
 function openLead(id=''){
  let l=id?leads.find(x=>x.id===id):{id:'L-'+Date.now(),name:'',phone:'',zip:'',type:'Age-In',status:'New',assigned:currentUser.role==='agent'?currentUser.id:'',follow:'',outcome:'',notes:'',lead_origin:currentUser.role==='agent'?'agent':'agency',created_by:currentUser.id,owner_id:currentUser.role==='agent'?currentUser.id:'',lead_source:currentUser.role==='agent'?'Agent Generated':'Manual Entry',campaign:'',source_detail:''};
- if(!l)return;
- if(currentUser.role==='agent'&&id&&l.assigned!==currentUser.id)return;
-
- const isExisting=!!id;
- const isAgency=isExisting && l.lead_origin==='agency';
- const isPersonal=isExisting && l.lead_origin==='agent';
- const mine=isPersonal && l.created_by===currentUser.id;
-
- let ownership='';
- if(isAgency){
-   ownership=`<div class="note" style="border-left:5px solid var(--blue);margin:12px 0">
-     <b>Agency / Lead Co-op Lead</b><br>
-     This lead was provided by Millican Insurance Agency. It is not part of your personal-lead export.
-   </div>`;
- }else if(isPersonal){
-   ownership=`<div class="note" style="border-left:5px solid var(--green);margin:12px 0">
-     <b>Agent-Owned Personal Lead${mine?' — Yours':''}</b><br>
-     ${mine?'You entered this lead. It remains your personal lead and is included in your personal-lead download.':'This lead was entered as an agent-owned personal lead.'}
-   </div>`;
- }else if(!isExisting && currentUser.role==='agent'){
-   ownership=`<div class="note" style="border-left:5px solid var(--green);margin:12px 0">
-     <b>New Personal Lead</b><br>
-     Leads you enter yourself belong to you and can be downloaded later with “Download My Personal Leads.”
-   </div>`;
- }else if(!isExisting && currentUser.role==='admin'){
-   ownership=`<div class="note" style="border-left:5px solid var(--blue);margin:12px 0">
-     <b>New Lead</b><br>
-     When you save, you will choose whether this is an Agency / Co-op lead or your own personal lead.
-   </div>`;
- }
-
- const returnButton=(currentUser.role==='agent'&&isAgency)
-   ? `<button class="btn danger" style="margin-right:auto" onclick="returnLeadToAgency('${l.id}')">↩ Return to Agency</button>`
-   : '';
-
- document.getElementById('modal').className='modal';
- document.getElementById('modal').innerHTML=`<div class="modal-card"><div class="modal-head"><h2>${id?'Lead '+esc(l.id):'New Lead'}</h2><button class="x" onclick="closeModal()">×</button></div>
- ${ownership}
- <div class="formgrid">
- <div class="field"><label>Name</label><input id="mName" value="${esc(l.name)}"></div>
- <div class="field"><label>Phone</label><input id="mPhone" value="${esc(l.phone)}"></div>
- <div class="field"><label>ZIP</label><input id="mZip" value="${esc(l.zip)}"></div>
- <div class="field"><label>Lead Type</label><select id="mType"><option ${l.type==='Age-In'?'selected':''}>Age-In</option><option ${l.type==='Plan Change'?'selected':''}>Plan Change</option></select></div>
- ${currentUser.role==='admin'?`<div class="field"><label>Ownership</label><select id="mOrigin"><option value="agency" ${(l.lead_origin||'agency')==='agency'?'selected':''}>Agency / Co-op</option><option value="agent" ${l.lead_origin==='agent'?'selected':''}>My Personal Lead</option></select></div>
- <div class="field"><label>Lead Source</label><select id="mSource"><option ${l.lead_source==='Facebook / Meta'?'selected':''}>Facebook / Meta</option><option ${l.lead_source==='Website / Fact Finder'?'selected':''}>Website / Fact Finder</option><option ${l.lead_source==='Seminar / Event'?'selected':''}>Seminar / Event</option><option ${l.lead_source==='Referral'?'selected':''}>Referral</option><option ${l.lead_source==='Walk-In'?'selected':''}>Walk-In</option><option ${l.lead_source==='Phone Call'?'selected':''}>Phone Call</option><option ${l.lead_source==='Kroger'?'selected':''}>Kroger</option><option ${l.lead_source==='Manual Entry'||!l.lead_source?'selected':''}>Manual Entry</option><option ${l.lead_source==='Other'?'selected':''}>Other</option></select></div>
- <div class="field"><label>Campaign / Event</label><input id="mCampaign" value="${esc(l.campaign||'')}" placeholder="Example: AEP 2027"></div>
- <div class="field"><label>Source Detail</label><input id="mSourceDetail" value="${esc(l.source_detail||'')}" placeholder="Ad set, event, referral source, etc."></div>`:`<div class="field"><label>Lead Source</label><input value="${esc(l.lead_source||'Agent Generated')}" disabled></div>`}
- <div class="field"><label>Status</label><select id="mStatus">${['New','Contacted','Appointment','SOLD','Not Interested'].map(x=>`<option ${l.status===x?'selected':''}>${x}</option>`).join('')}</select></div>
- <div class="field"><label>Follow-Up Date</label><input id="mFollow" type="date" value="${esc(l.follow)}"></div>
- ${currentUser.role==='admin'?`<div class="field"><label>Assigned Agent</label><select id="mAssigned"><option value="">Unassigned</option>${activeAgents().map(u=>`<option value="${u.id}" ${l.assigned===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>`:''}
- <div class="field"><label>Outcome</label><input id="mOutcome" value="${esc(l.outcome)}"></div>
- <div class="field span2"><label>Notes</label><textarea id="mNotes" rows="4">${esc(l.notes)}</textarea></div>
- </div>
- <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center">
-   ${returnButton}
-   <button class="btn secondary" onclick="closeModal()">Cancel</button>
-   <button class="btn" onclick="saveLead('${l.id}',${id?'true':'false'})">Save Lead</button>
- </div></div>`;
+ if(!l)return;if(currentUser.role==='agent'&&id&&l.assigned!==currentUser.id)return;openLeadRecord=l;openFactFinder=null;
+ const isExisting=!!id,isAgency=isExisting&&l.lead_origin==='agency',isPersonal=isExisting&&l.lead_origin==='agent',mine=isPersonal&&l.created_by===currentUser.id;
+ let ownership=isAgency?`<div class="note" style="border-left:5px solid var(--blue);margin:12px 0"><b>Agency / Lead Co-op Lead</b><br>This lead was provided by Millican Insurance Agency. It is not part of your personal-lead export.</div>`:isPersonal?`<div class="note" style="border-left:5px solid var(--green);margin:12px 0"><b>Agent-Owned Personal Lead${mine?' — Yours':''}</b><br>${mine?'You entered this lead. It remains your personal lead and is included in your personal-lead download.':'This lead was entered as an agent-owned personal lead.'}</div>`:!isExisting&&currentUser.role==='agent'?`<div class="note" style="border-left:5px solid var(--green);margin:12px 0"><b>New Personal Lead</b><br>Leads you enter yourself belong to you and can be downloaded later with “Download My Personal Leads.”</div>`:`<div class="note" style="border-left:5px solid var(--blue);margin:12px 0"><b>New Lead</b><br>When you save, choose Agency / Co-op or your own personal lead.</div>`;
+ const returnButton=(currentUser.role==='agent'&&isAgency)?`<button class="btn danger" style="margin-right:auto" onclick="returnLeadToAgency('${l.id}')">↩ Return to Agency</button>`:'';
+ const factTab=isExisting?`<button class="tab" data-tab="factfinder" onclick="switchLeadTab('factfinder')">Fact Finder</button><button class="tab" data-tab="activity" onclick="switchLeadTab('activity')">Activity</button>`:'';
+ document.getElementById('modal').className='modal';document.getElementById('modal').innerHTML=`<div class="modal-card"><div class="modal-head"><h2>${id?'Lead '+esc(l.id):'New Lead'}</h2><button class="x" onclick="closeModal()">×</button></div>${ownership}<div class="tabs"><button class="tab active" data-tab="lead" onclick="switchLeadTab('lead')">Lead</button>${factTab}</div>
+ <div id="tab-lead" class="tabpane active"><div class="formgrid"><div class="field"><label>Name</label><input id="mName" value="${esc(l.name)}"></div><div class="field"><label>Phone</label><input id="mPhone" value="${esc(l.phone)}"></div><div class="field"><label>ZIP</label><input id="mZip" value="${esc(l.zip)}"></div><div class="field"><label>Lead Type</label><select id="mType"><option ${l.type==='Age-In'?'selected':''}>Age-In</option><option ${l.type==='Plan Change'?'selected':''}>Plan Change</option></select></div>
+ ${currentUser.role==='admin'?`<div class="field"><label>Ownership</label><select id="mOrigin"><option value="agency" ${(l.lead_origin||'agency')==='agency'?'selected':''}>Agency / Co-op</option><option value="agent" ${l.lead_origin==='agent'?'selected':''}>My Personal Lead</option></select></div><div class="field"><label>Lead Source</label><select id="mSource">${['Facebook / Meta','Website / Fact Finder','Seminar / Event','Referral','Walk-In','Phone Call','Kroger','Manual Entry','Other'].map(x=>`<option ${l.lead_source===x||(!l.lead_source&&x==='Manual Entry')?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>Campaign / Event</label><input id="mCampaign" value="${esc(l.campaign||'')}" placeholder="Example: AEP 2027"></div><div class="field"><label>Source Detail</label><input id="mSourceDetail" value="${esc(l.source_detail||'')}" placeholder="Ad set, event, referral source, etc."></div>`:`<div class="field"><label>Lead Source</label><input value="${esc(l.lead_source||'Agent Generated')}" disabled></div>`}
+ <div class="field"><label>Status</label><select id="mStatus">${['New','Contacted','Appointment','SOLD','Not Interested'].map(x=>`<option ${l.status===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>Follow-Up Date</label><input id="mFollow" type="date" value="${esc(l.follow)}"></div>${currentUser.role==='admin'?`<div class="field"><label>Assigned Agent</label><select id="mAssigned"><option value="">Unassigned</option>${activeAgents().map(u=>`<option value="${u.id}" ${l.assigned===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>`:''}<div class="field"><label>Outcome</label><input id="mOutcome" value="${esc(l.outcome)}"></div><div class="field span2"><label>Notes</label><textarea id="mNotes" rows="4">${esc(l.notes)}</textarea></div></div><div style="display:flex;justify-content:flex-end;gap:8px;align-items:center">${returnButton}<button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveLead('${l.id}',${id?'true':'false'})">Save Lead</button></div></div>
+ ${isExisting?`<div id="tab-factfinder" class="tabpane"><div class="sensitive"><b>Protected client information</b> - SSN, Medicare ID and Medicaid ID are kept inside the authorized Fact Finder and are not shown in normal lead lists.</div><div class="formgrid"><div class="field"><label>Name (First, MI, Last)</label><input id="ffName"></div><div class="field"><label>Date</label><input id="ffDate" type="date"></div><div class="field span2"><label>Address</label><input id="ffAddress"></div><div class="field"><label>Phone</label><input id="ffPhone"></div><div class="field"><label>County</label><input id="ffCounty"></div><div class="field"><label>Birthdate</label><input id="ffBirthdate" type="date"></div><div class="field"><label>SSN</label><input id="ffSSN" autocomplete="off"></div><div class="field"><label>Medicare ID #</label><input id="ffMedicare" autocomplete="off"></div><div class="field"><label>Part A Effective Date</label><input id="ffPartA" type="date"></div><div class="field"><label>Part B Effective Date</label><input id="ffPartB" type="date"></div><div class="field"><label>Scope #</label><input id="ffScope"></div><div class="field"><label>Verification #</label><input id="ffVerification"></div><div class="field"><label>HRA</label><input id="ffHRA"></div><div class="field"><label>LIS Verification</label><input id="ffLIS"></div><div class="field"><label>Medicaid Verification</label><input id="ffMedicaidVerification"></div><div class="field"><label>Medicaid #</label><input id="ffMedicaid" autocomplete="off"></div><div class="field span2"><label>Doctor Name</label><input id="ffDoctor"></div><div class="field"><label>Company</label><input id="ffCompany"></div><div class="field"><label>Plan</label><input id="ffPlan"></div><div class="field"><label>Effective Date</label><input id="ffEffective" type="date"></div><div class="field span2"><label>Rewrite / Change Reason</label><textarea id="ffRewrite" rows="3"></textarea></div></div><div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn secondary" onclick="saveFactFinder()">Save Fact Finder</button><button class="btn" onclick="downloadFactFinderPDF()">Download Fact Finder PDF</button></div></div><div id="tab-activity" class="tabpane"><div class="panel" style="box-shadow:none"><p><b>Lead created:</b> ${esc(l.created_at?new Date(l.created_at).toLocaleString():'—')}</p><p><b>Current status:</b> ${esc(l.status)}</p><p><b>Assigned to:</b> ${esc(userName(l.assigned))}</p>${l.returned_at?`<p><b>Last returned:</b> ${esc(new Date(l.returned_at).toLocaleString())}</p><p><b>Return reason:</b> ${esc(l.return_reason||'—')}</p>`:''}</div></div>`:''}</div>`;
 }
 async function saveLead(id,existing){
  let old=existing?leads.find(x=>x.id===id):null;
@@ -316,9 +314,9 @@ async function saveLead(id,existing){
    assigned_to:existing?(currentUser.role==='admin'?(obj.assigned||null):old.assigned):(origin==='agent'?currentUser.id:(obj.assigned||null)),
    follow_up_date:obj.follow||null,outcome:obj.outcome||null,notes:obj.notes||null,
    lead_origin:origin,
-   lead_source:existing?(old.lead_source||obj.lead_source):obj.lead_source,
-   campaign:existing?(old.campaign||obj.campaign):obj.campaign||null,
-   source_detail:existing?(old.source_detail||obj.source_detail):obj.source_detail||null,
+   lead_source:existing?(currentUser.role==='admin'?obj.lead_source:(old.lead_source||obj.lead_source)):obj.lead_source,
+   campaign:existing?(currentUser.role==='admin'?(obj.campaign||null):(old.campaign||null)):(obj.campaign||null),
+   source_detail:existing?(currentUser.role==='admin'?(obj.source_detail||null):(old.source_detail||null)):(obj.source_detail||null),
    assignment_state:existing?(old.assignment_state||'Assigned'):(origin==='agency'?'Unassigned':'Assigned')
  };
  if(!existing){payload.created_by=currentUser.id;payload.owner_id=origin==='agent'?currentUser.id:null}
@@ -329,7 +327,7 @@ async function saveLead(id,existing){
  await loadPortalData();closeModal();
  showView(currentUser.role==='admin'&&origin==='agency'?'assign':'leads');
 }
-function closeModal(){document.getElementById('modal').className='modal hidden';document.getElementById('modal').innerHTML=''}
+function closeModal(){openLeadRecord=null;openFactFinder=null;document.getElementById('modal').className='modal hidden';document.getElementById('modal').innerHTML=''}
 function renderAssign(){
  if(currentUser.role!=='admin')return;
  let ua=leads.filter(l=>!l.assigned&&l.lead_origin==='agency');

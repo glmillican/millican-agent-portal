@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Millican Insurance Agency Portal V3</title>
+<title>Millican Insurance Agency Portal V4</title>
 <style>
 :root{--navy:#062f58;--navy2:#021e3a;--green:#8ee737;--blue:#1682e6;--bg:#f4f7fb;--line:#dce5ef;--red:#c72c41;--gold:#d39a1f}
 *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#082a50}
@@ -72,20 +72,8 @@ const SUPABASE_URL='https://hsrzsgipiznytrwqnyxn.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_KUoi_tNBht5FBo3AxESogQ_aUf19Ibt';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 
-const USERS=[
- {id:'gary',name:'Gary Millican',email:'gary@millican.agency',password:'admin123',role:'admin',active:true},
- {id:'sandy',name:'Sandy Jackson',email:'sandy@millican.agency',password:'agent123',role:'agent',active:true},
- {id:'todd',name:'Todd Carlton',email:'todd@millican.agency',password:'agent123',role:'agent',active:true},
- {id:'curtis',name:'Curtis',email:'curtis@millican.agency',password:'agent123',role:'agent',active:false}
-];
-const DEFAULT_LEADS=[
- {id:'L-1001',name:'Robert M.',phone:'501-555-0101',zip:'72015',type:'Age-In',status:'New',assigned:'sandy',follow:'',outcome:'',notes:'Facebook lead'},
- {id:'L-1002',name:'Linda S.',phone:'501-555-0102',zip:'72019',type:'Plan Change',status:'Contacted',assigned:'sandy',follow:'2026-09-26',outcome:'',notes:'Call after 4 PM'},
- {id:'L-1003',name:'James K.',phone:'501-555-0103',zip:'72022',type:'Age-In',status:'Appointment',assigned:'sandy',follow:'2026-09-25',outcome:'',notes:'Office appointment'},
- {id:'L-1004',name:'Thomas D.',phone:'501-555-0104',zip:'72002',type:'Age-In',status:'SOLD',assigned:'sandy',follow:'',outcome:'Enrolled',notes:'Demo enrollment'},
- {id:'L-1005',name:'Mary T.',phone:'501-555-0105',zip:'72018',type:'Plan Change',status:'New',assigned:'',follow:'',outcome:'',notes:'Unassigned demo lead'},
- {id:'L-1006',name:'Carol B.',phone:'501-555-0106',zip:'72103',type:'Age-In',status:'New',assigned:'todd',follow:'',outcome:'',notes:'Website lead'}
-];
+let USERS=[];
+const DEFAULT_LEADS=[];
 const DEFAULT_TRAINING=[
  {id:'TR1',title:'Medicare 101',category:'Core',assigned:['sandy','todd'],complete:['sandy'],url:'#'},
  {id:'TR2',title:'AEP Compliance Checklist',category:'Compliance',assigned:['sandy','todd'],complete:[],url:'#'},
@@ -99,9 +87,28 @@ const DEFAULT_CARRIERS=[
  {id:'AET',name:'Aetna',assigned:['todd'],status:{todd:'Active'},url:'#'}
 ];
 function load(key,def){try{return JSON.parse(localStorage.getItem(key))||def}catch(e){return def}}
-let leads=load('mia_leads',DEFAULT_LEADS), training=load('mia_training',DEFAULT_TRAINING), carriers=load('mia_carriers',DEFAULT_CARRIERS);
+let leads=[], training=load('mia_training',DEFAULT_TRAINING), carriers=load('mia_carriers',DEFAULT_CARRIERS);
 let currentUser=null;
-function save(){localStorage.setItem('mia_leads',JSON.stringify(leads));localStorage.setItem('mia_training',JSON.stringify(training));localStorage.setItem('mia_carriers',JSON.stringify(carriers))}
+function save(){localStorage.setItem('mia_training',JSON.stringify(training));localStorage.setItem('mia_carriers',JSON.stringify(carriers))}
+
+async function loadPortalData(){
+ const {data:leadRows,error:leadError}=await sb.from('leads')
+   .select('id,lead_id,client_name,phone,email,zip,lead_type,status,assigned_to,follow_up_date,outcome,notes,carrier,plan_name,enrollment_type,expected_commission,created_at')
+   .order('created_at',{ascending:false});
+ if(leadError) throw leadError;
+ leads=(leadRows||[]).map(r=>({
+   dbid:r.id,id:r.lead_id||r.id,name:r.client_name||'',phone:r.phone||'',email:r.email||'',
+   zip:r.zip||'',type:r.lead_type||'',status:r.status||'New',assigned:r.assigned_to||'',
+   follow:r.follow_up_date||'',outcome:r.outcome||'',notes:r.notes||'',carrier:r.carrier||'',
+   plan_name:r.plan_name||'',enrollment_type:r.enrollment_type||'',expected_commission:r.expected_commission
+ }));
+ const {data:profiles,error:profileError}=await sb.from('profiles')
+   .select('id,full_name,email,role,active').order('full_name');
+ if(profileError) throw profileError;
+ USERS=(profiles||[]).map(p=>({id:p.id,name:p.full_name,email:p.email,role:p.role,active:p.active}));
+}
+function activeAgents(){return activeAgents()}
+
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 async function login(){
  const e=document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -117,6 +124,7 @@ async function login(){
    return;
  }
  currentUser={id:profile.id,name:profile.full_name,email:profile.email,role:profile.role,active:profile.active};
+ try{await loadPortalData();}catch(e){await sb.auth.signOut();alert('Could not load portal data: '+e.message);return}
  document.getElementById('loginScreen').classList.add('hidden');
  document.getElementById('app').classList.remove('hidden');
  renderShell();showView('dashboard');
@@ -159,7 +167,7 @@ function renderDashboard(){
  <div class="card"><div class="num blue">${open}</div><b>${currentUser.role==='admin'?'Open Leads':'My Open Leads'}</b></div>
  <div class="card"><div class="num green">${sold}</div><b>Sold / Enrolled</b></div>
  <div class="card"><div class="num ${unassigned?'red':'green'}">${currentUser.role==='admin'?unassigned:training.filter(t=>t.assigned.includes(currentUser.id)&&!t.complete.includes(currentUser.id)).length}</div><b>${currentUser.role==='admin'?'Unassigned Leads':'Training Due'}</b></div>
- <div class="card"><div class="num blue">${currentUser.role==='admin'?USERS.filter(u=>u.role==='agent'&&u.active).length:carriers.filter(c=>c.assigned.includes(currentUser.id)).length}</div><b>${currentUser.role==='admin'?'Active Agents':'Assigned Carriers'}</b></div>
+ <div class="card"><div class="num blue">${currentUser.role==='admin'?activeAgents().length:carriers.filter(c=>c.assigned.includes(currentUser.id)).length}</div><b>${currentUser.role==='admin'?'Active Agents':'Assigned Carriers'}</b></div>
  </section>
  <div class="grid">
  <section class="panel"><div class="title">${currentUser.role==='admin'?'Recent Leads':'My Leads'} <button class="btn small" style="float:right" onclick="openLead()">+ New Lead</button></div>${leadTable(ls.slice(0,6))}</section>
@@ -197,25 +205,44 @@ function openLead(id=''){
  <div class="field"><label>Lead Type</label><select id="mType"><option ${l.type==='Age-In'?'selected':''}>Age-In</option><option ${l.type==='Plan Change'?'selected':''}>Plan Change</option></select></div>
  <div class="field"><label>Status</label><select id="mStatus">${['New','Contacted','Appointment','SOLD','Not Interested'].map(x=>`<option ${l.status===x?'selected':''}>${x}</option>`).join('')}</select></div>
  <div class="field"><label>Follow-Up Date</label><input id="mFollow" type="date" value="${esc(l.follow)}"></div>
- ${currentUser.role==='admin'?`<div class="field"><label>Assigned Agent</label><select id="mAssigned"><option value="">Unassigned</option>${USERS.filter(u=>u.role==='agent'&&u.active).map(u=>`<option value="${u.id}" ${l.assigned===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>`:''}
+ ${currentUser.role==='admin'?`<div class="field"><label>Assigned Agent</label><select id="mAssigned"><option value="">Unassigned</option>${activeAgents().map(u=>`<option value="${u.id}" ${l.assigned===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>`:''}
  <div class="field"><label>Outcome</label><input id="mOutcome" value="${esc(l.outcome)}"></div>
  <div class="field span2"><label>Notes</label><textarea id="mNotes" rows="4">${esc(l.notes)}</textarea></div>
  </div><div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveLead('${l.id}',${id?'true':'false'})">Save Lead</button></div></div>`;
 }
-function saveLead(id,existing){
- let obj={id,name:mName.value.trim(),phone:mPhone.value.trim(),zip:mZip.value.trim(),type:mType.value,status:mStatus.value,assigned:currentUser.role==='admin'?mAssigned.value:currentUser.id,follow:mFollow.value,outcome:mOutcome.value.trim(),notes:mNotes.value.trim()};
+async function saveLead(id,existing){
+ let obj={id,name:mName.value.trim(),phone:mPhone.value.trim(),zip:mZip.value.trim(),type:mType.value,status:mStatus.value,assigned:currentUser.role==='admin'?(document.getElementById('mAssigned')?.value||''):currentUser.id,follow:mFollow.value,outcome:mOutcome.value.trim(),notes:mNotes.value.trim()};
  if(!obj.name){alert('Lead name is required.');return}
- if(existing){let i=leads.findIndex(x=>x.id===id);leads[i]=obj}else leads.unshift(obj);
- save();closeModal();showView('leads');
+ const payload={
+   lead_id:obj.id,client_name:obj.name,phone:obj.phone||null,zip:obj.zip||null,
+   lead_type:obj.type||null,status:obj.status,assigned_to:obj.assigned||null,
+   follow_up_date:obj.follow||null,outcome:obj.outcome||null,notes:obj.notes||null
+ };
+ let result;
+ if(existing){
+   const old=leads.find(x=>x.id===id);
+   result=await sb.from('leads').update(payload).eq('id',old.dbid);
+ }else{
+   result=await sb.from('leads').insert(payload);
+ }
+ if(result.error){alert('Could not save lead: '+result.error.message);return}
+ await loadPortalData();closeModal();showView('leads');
 }
 function closeModal(){document.getElementById('modal').className='modal hidden';document.getElementById('modal').innerHTML=''}
 function renderAssign(){
  if(currentUser.role!=='admin')return;
  let ua=leads.filter(l=>!l.assigned);
  document.getElementById('assignView').innerHTML=`<section class="hello"><div><h1>Assign Leads</h1><div class="muted">Assign unassigned leads to an active agent.</div></div></section>
- <section class="panel"><div class="title">Unassigned Leads (${ua.length})</div>${ua.length?`<table><thead><tr><th>Lead</th><th>Type</th><th>Status</th><th>Assign To</th><th></th></tr></thead><tbody>${ua.map(l=>`<tr><td><b>${esc(l.name)}</b><br><small>${esc(l.phone)}</small></td><td>${esc(l.type)}</td><td>${statusPill(l.status)}</td><td><select id="assign_${l.id}"><option value="">Select agent</option>${USERS.filter(u=>u.role==='agent'&&u.active).map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select></td><td><button class="btn small" onclick="assignLead('${l.id}')">Assign</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">No unassigned leads right now.</p>'}</section>`;
+ <section class="panel"><div class="title">Unassigned Leads (${ua.length})</div>${ua.length?`<table><thead><tr><th>Lead</th><th>Type</th><th>Status</th><th>Assign To</th><th></th></tr></thead><tbody>${ua.map(l=>`<tr><td><b>${esc(l.name)}</b><br><small>${esc(l.phone)}</small></td><td>${esc(l.type)}</td><td>${statusPill(l.status)}</td><td><select id="assign_${l.id}"><option value="">Select agent</option>${activeAgents().map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select></td><td><button class="btn small" onclick="assignLead('${l.id}')">Assign</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">No unassigned leads right now.</p>'}</section>`;
 }
-function assignLead(id){let v=document.getElementById('assign_'+id).value;if(!v){alert('Choose an agent first.');return}leads.find(l=>l.id===id).assigned=v;save();renderAssign()}
+async function assignLead(id){
+ let v=document.getElementById('assign_'+id).value;
+ if(!v){alert('Choose an agent first.');return}
+ let l=leads.find(x=>x.id===id);
+ const {error}=await sb.from('leads').update({assigned_to:v}).eq('id',l.dbid);
+ if(error){alert('Could not assign lead: '+error.message);return}
+ await loadPortalData();renderAssign();
+}leads.find(l=>l.id===id).assigned=v;save();renderAssign()}
 function renderAgents(){
  if(currentUser.role!=='admin')return;
  document.getElementById('agentsView').innerHTML=`<section class="hello"><div><h1>Manage Agents</h1><div class="muted">V2 shows the access model. Real account creation/password resets will move to secure authentication.</div></div></section>
@@ -231,7 +258,7 @@ function addTraining(){
  training.push({id:'TR'+Date.now(),title,category:cat,assigned:[],complete:[],url:'#'});save();renderTraining()
 }
 function assignTraining(id){
- let t=training.find(x=>x.id===id); let choices=USERS.filter(u=>u.role==='agent'&&u.active).map(u=>u.id+': '+u.name).join('\n');
+ let t=training.find(x=>x.id===id); let choices=activeAgents().map(u=>u.id+': '+u.name).join('\n');
  let idv=prompt('Enter agent id to assign:\n'+choices); if(!USERS.find(u=>u.id===idv&&u.role==='agent'))return;
  if(!t.assigned.includes(idv))t.assigned.push(idv);save();renderTraining()
 }
@@ -243,7 +270,7 @@ function renderCarriers(){
 }
 function addCarrier(){let n=prompt('Carrier name');if(!n)return;carriers.push({id:'C'+Date.now(),name:n,assigned:[],status:{},url:'#'});save();renderCarriers()}
 function assignCarrier(id){
- let c=carriers.find(x=>x.id===id);let choices=USERS.filter(u=>u.role==='agent'&&u.active).map(u=>u.id+': '+u.name).join('\n');let idv=prompt('Enter agent id to assign:\n'+choices);if(!USERS.find(u=>u.id===idv&&u.role==='agent'))return;
+ let c=carriers.find(x=>x.id===id);let choices=activeAgents().map(u=>u.id+': '+u.name).join('\n');let idv=prompt('Enter agent id to assign:\n'+choices);if(!USERS.find(u=>u.id===idv&&u.role==='agent'))return;
  if(!c.assigned.includes(idv))c.assigned.push(idv);c.status[idv]=c.status[idv]||'Assigned';save();renderCarriers()
 }
 function renderProduction(){
@@ -258,6 +285,7 @@ async function restoreSession(){
  const {data:profile}=await sb.from('profiles').select('id,full_name,email,role,active').eq('id',uid).single();
  if(!profile||!profile.active){await sb.auth.signOut();return}
  currentUser={id:profile.id,name:profile.full_name,email:profile.email,role:profile.role,active:profile.active};
+ try{await loadPortalData();}catch(e){await sb.auth.signOut();alert('Could not load portal data: '+e.message);return}
  document.getElementById('loginScreen').classList.add('hidden');
  document.getElementById('app').classList.remove('hidden');
  renderShell();showView('dashboard');

@@ -1,15 +1,16 @@
-Millican Insurance Agency Portal V3
+Millican Insurance Agency Portal V4
 
-Changes:
-- Real Supabase email/password authentication
-- Authenticated user's public.profiles record controls admin/agent role
-- Active/inactive profile enforcement
-- Session restoration after refresh
-- No demo password displayed on login screen
+V4 milestone:
+- Real Supabase authentication
+- Real leads loaded from public.leads
+- Dashboard lead counts use Supabase data
+- Recent Leads and All Leads use Supabase data
+- Add/Edit Lead writes to Supabase
+- Assign Lead writes to Supabase
+- Agent names come from public.profiles
 
-Current limitation:
-Lead, training, carrier and production screens still use prototype browser data.
-Next step is converting those screens to the Supabase tables already created.
+Expected current test:
+Gary logs in as admin and should see TEST-001 / Test Client from Supabase.
 
-The Supabase publishable key included in index.html is a browser/public key by design.
-Never add a service_role/secret key or database password to this repository.
+Training and Carrier Center remain prototype/local data for now.
+Do not enter real Medicare/PII data until agent-level RLS testing is completed.

@@ -1,18 +1,15 @@
-Millican Insurance Agency Portal V2
+Millican Insurance Agency Portal V3
 
-This is a functional front-end prototype:
-- Test Admin and Agent login screens
-- Role-based Admin vs Agent navigation
-- Lead creation/editing/status updates
-- Admin lead assignment
-- Training Center assignments/completion
-- Carrier Center assignments/readiness display
-- Production counts from SOLD leads
-- Browser localStorage persistence
+Changes:
+- Real Supabase email/password authentication
+- Authenticated user's public.profiles record controls admin/agent role
+- Active/inactive profile enforcement
+- Session restoration after refresh
+- No demo password displayed on login screen
 
-SECURITY: This version is for testing only. It has no secure backend/authentication.
-Do not enter real SSNs, Medicare IDs, Medicaid numbers, passwords, or client-sensitive data.
+Current limitation:
+Lead, training, carrier and production screens still use prototype browser data.
+Next step is converting those screens to the Supabase tables already created.
 
-Test accounts:
-Admin: gary@millican.agency / admin123
-Agent: sandy@millican.agency / agent123
+The Supabase publishable key included in index.html is a browser/public key by design.
+Never add a service_role/secret key or database password to this repository.

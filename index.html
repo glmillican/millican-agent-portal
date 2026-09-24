@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Millican Insurance Agency Portal V2</title>
+<title>Millican Insurance Agency Portal V3</title>
 <style>
 :root{--navy:#062f58;--navy2:#021e3a;--green:#8ee737;--blue:#1682e6;--bg:#f4f7fb;--line:#dce5ef;--red:#c72c41;--gold:#d39a1f}
 *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#082a50}
@@ -36,6 +36,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#f5faff}.pill{padding:
 @media(max-width:1050px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:190px 1fr}.top{background:#06335e}.logo{background:white;border-radius:8px;padding:4px}}
 @media(max-width:720px){.layout{grid-template-columns:1fr}.side{min-height:auto}.cards,.agent-list,.formgrid{grid-template-columns:1fr}.top{height:auto;flex-wrap:wrap}.user{margin-left:0}.span2{grid-column:auto}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <section id="loginScreen" class="login-wrap">
@@ -45,7 +46,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#f5faff}.pill{padding:
     <div class="field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@millican.agency"></div>
     <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••"></div>
     <button class="btn navy" style="width:100%" onclick="login()">Sign In</button>
-    <div class="note"><b>V2 test accounts:</b><br>Admin: <b>gary@millican.agency</b> / <b>admin123</b><br>Agent: <b>sandy@millican.agency</b> / <b>agent123</b><br><br>This is a working prototype using browser storage only. Do not enter real SSNs, Medicare IDs, passwords, or client-sensitive information yet.</div>
+    <div class="note"><b>Secure portal login</b><br>Use your Millican Agency Portal account credentials.</div>
   </div>
 </section>
 
@@ -67,6 +68,10 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#f5faff}.pill{padding:
 <div id="modal" class="modal hidden"></div>
 
 <script>
+const SUPABASE_URL='https://hsrzsgipiznytrwqnyxn.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_KUoi_tNBht5FBo3AxESogQ_aUf19Ibt';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+
 const USERS=[
  {id:'gary',name:'Gary Millican',email:'gary@millican.agency',password:'admin123',role:'admin',active:true},
  {id:'sandy',name:'Sandy Jackson',email:'sandy@millican.agency',password:'agent123',role:'agent',active:true},
@@ -98,14 +103,31 @@ let leads=load('mia_leads',DEFAULT_LEADS), training=load('mia_training',DEFAULT_
 let currentUser=null;
 function save(){localStorage.setItem('mia_leads',JSON.stringify(leads));localStorage.setItem('mia_training',JSON.stringify(training));localStorage.setItem('mia_carriers',JSON.stringify(carriers))}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function login(){
- const e=document.getElementById('loginEmail').value.trim().toLowerCase(), p=document.getElementById('loginPassword').value;
- const u=USERS.find(x=>x.email===e&&x.password===p&&x.active);
- if(!u){alert('Login not found or account inactive.');return}
- currentUser=u; document.getElementById('loginScreen').classList.add('hidden');document.getElementById('app').classList.remove('hidden');
+async function login(){
+ const e=document.getElementById('loginEmail').value.trim().toLowerCase();
+ const p=document.getElementById('loginPassword').value;
+ if(!e||!p){alert('Enter your email and password.');return}
+ const {data:authData,error:authError}=await sb.auth.signInWithPassword({email:e,password:p});
+ if(authError){alert('Sign in failed: '+authError.message);return}
+ const uid=authData.user.id;
+ const {data:profile,error:profileError}=await sb.from('profiles').select('id,full_name,email,role,active').eq('id',uid).single();
+ if(profileError||!profile||!profile.active){
+   await sb.auth.signOut();
+   alert('Your portal profile is missing or inactive. Contact the agency administrator.');
+   return;
+ }
+ currentUser={id:profile.id,name:profile.full_name,email:profile.email,role:profile.role,active:profile.active};
+ document.getElementById('loginScreen').classList.add('hidden');
+ document.getElementById('app').classList.remove('hidden');
  renderShell();showView('dashboard');
 }
-function logout(){currentUser=null;document.getElementById('app').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden')}
+async function logout(){
+ await sb.auth.signOut();
+ currentUser=null;
+ document.getElementById('app').classList.add('hidden');
+ document.getElementById('loginScreen').classList.remove('hidden');
+ document.getElementById('loginPassword').value='';
+}
 function navItem(label,view,icon='•'){return `<div class="nav" data-view="${view}" onclick="showView('${view}')">${icon} &nbsp; ${label}</div>`}
 function renderShell(){
  document.getElementById('userName').textContent=currentUser.name;
@@ -228,6 +250,20 @@ function renderProduction(){
  let rows=(currentUser.role==='admin'?USERS.filter(u=>u.role==='agent'): [currentUser]).map(u=>{let x=leads.filter(l=>l.assigned===u.id), age=x.filter(l=>l.status==='SOLD'&&l.type==='Age-In').length, pc=x.filter(l=>l.status==='SOLD'&&l.type==='Plan Change').length;return {u,age,pc,total:age+pc}});
  document.getElementById('productionView').innerHTML=`<section class="hello"><div><h1>${currentUser.role==='admin'?'Agency Production':'My Production'}</h1><div class="muted">V2 calculates counts from leads marked SOLD. Commission rules will be connected to the tracker next.</div></div></section><section class="panel"><table><thead><tr><th>Agent</th><th>Age-In</th><th>Plan Change</th><th>Total Sold</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.u.name)}</b></td><td>${r.age}</td><td>${r.pc}</td><td>${r.total}</td></tr>`).join('')}</tbody></table></section>`;
 }
+
+async function restoreSession(){
+ const {data}=await sb.auth.getSession();
+ if(!data.session)return;
+ const uid=data.session.user.id;
+ const {data:profile}=await sb.from('profiles').select('id,full_name,email,role,active').eq('id',uid).single();
+ if(!profile||!profile.active){await sb.auth.signOut();return}
+ currentUser={id:profile.id,name:profile.full_name,email:profile.email,role:profile.role,active:profile.active};
+ document.getElementById('loginScreen').classList.add('hidden');
+ document.getElementById('app').classList.remove('hidden');
+ renderShell();showView('dashboard');
+}
+restoreSession();
+
 </script>
 </body>
 </html>

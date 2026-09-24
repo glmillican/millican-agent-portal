@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Millican Insurance Agency Portal V5.3.2.1</title>
+<title>Millican Insurance Agency Portal V5.4</title>
 <style>
 :root{--navy:#062f58;--navy2:#021e3a;--green:#8ee737;--blue:#1682e6;--bg:#f4f7fb;--line:#dce5ef;--red:#c72c41;--gold:#d39a1f}
 *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#082a50}
@@ -122,13 +122,28 @@ function downloadMyPersonalLeads(){
 }
 async function returnLeadToAgency(id){
  const l=leads.find(x=>x.id===id);
- if(!l||l.lead_origin!=='agency'){alert('Only agency/co-op leads can be returned.');return}
- const reason=prompt('Return reason: Unable to Reach, Bad/Invalid Lead, Not Interested, Duplicate, Not Eligible, Requested Different Agent, or Other');
- if(!reason)return;
- const note=prompt('Optional return note:')||'';
- const {error}=await sb.from('leads').update({assigned_to:null,assignment_state:'Returned',return_reason:reason,return_note:note,returned_at:new Date().toISOString()}).eq('id',l.dbid);
+ if(!l||l.lead_origin!=='agency'){alert('Only Agency / Lead Co-op leads can be returned.');return}
+ if(currentUser.role!=='agent'||l.assigned!==currentUser.id){alert('You can only return an Agency / Lead Co-op lead currently assigned to you.');return}
+
+ const reason=prompt('Why are you returning this lead?\n\nExamples: Unable to Reach, Bad/Invalid Lead, Not Interested, Duplicate, Not Eligible, Requested Different Agent, Other');
+ if(!reason||!reason.trim())return;
+ const note=prompt('Optional note for Gary about this lead:')||'';
+
+ if(!confirm('Return '+l.name+' to the agency?\n\nIt will be removed from your assigned leads and placed back in the agency assignment queue.'))return;
+
+ const {error}=await sb.from('leads').update({
+   assigned_to:null,
+   assignment_state:'Returned',
+   return_reason:reason.trim(),
+   return_note:note.trim(),
+   returned_at:new Date().toISOString()
+ }).eq('id',l.dbid);
  if(error){alert('Could not return lead: '+error.message);return}
- await loadPortalData();showView('leads');
+
+ await loadPortalData();
+ closeModal();
+ showView('leads');
+ alert('Lead returned to the agency.');
 }
 async function toggleCoop(uid,on){
  const {error}=await sb.from('profiles').update({coop_active:on}).eq('id',uid);
@@ -221,10 +236,45 @@ function renderLeadsFiltered(){
  document.getElementById('leadTableWrap').innerHTML=leadTable(ls);
 }
 function openLead(id=''){
- let l=id?leads.find(x=>x.id===id):{id:'L-'+Date.now(),name:'',phone:'',zip:'',type:'Age-In',status:'New',assigned:currentUser.role==='agent'?currentUser.id:'',follow:'',outcome:'',notes:''};
+ let l=id?leads.find(x=>x.id===id):{id:'L-'+Date.now(),name:'',phone:'',zip:'',type:'Age-In',status:'New',assigned:currentUser.role==='agent'?currentUser.id:'',follow:'',outcome:'',notes:'',lead_origin:currentUser.role==='agent'?'agent':'agency',created_by:currentUser.id,owner_id:currentUser.role==='agent'?currentUser.id:''};
+ if(!l)return;
  if(currentUser.role==='agent'&&id&&l.assigned!==currentUser.id)return;
+
+ const isExisting=!!id;
+ const isAgency=isExisting && l.lead_origin==='agency';
+ const isPersonal=isExisting && l.lead_origin==='agent';
+ const mine=isPersonal && l.created_by===currentUser.id;
+
+ let ownership='';
+ if(isAgency){
+   ownership=`<div class="note" style="border-left:5px solid var(--blue);margin:12px 0">
+     <b>Agency / Lead Co-op Lead</b><br>
+     This lead was provided by Millican Insurance Agency. It is not part of your personal-lead export.
+   </div>`;
+ }else if(isPersonal){
+   ownership=`<div class="note" style="border-left:5px solid var(--green);margin:12px 0">
+     <b>Agent-Owned Personal Lead${mine?' — Yours':''}</b><br>
+     ${mine?'You entered this lead. It remains your personal lead and is included in your personal-lead download.':'This lead was entered as an agent-owned personal lead.'}
+   </div>`;
+ }else if(!isExisting && currentUser.role==='agent'){
+   ownership=`<div class="note" style="border-left:5px solid var(--green);margin:12px 0">
+     <b>New Personal Lead</b><br>
+     Leads you enter yourself belong to you and can be downloaded later with “Download My Personal Leads.”
+   </div>`;
+ }else if(!isExisting && currentUser.role==='admin'){
+   ownership=`<div class="note" style="border-left:5px solid var(--blue);margin:12px 0">
+     <b>New Lead</b><br>
+     When you save, you will choose whether this is an Agency / Co-op lead or your own personal lead.
+   </div>`;
+ }
+
+ const returnButton=(currentUser.role==='agent'&&isAgency)
+   ? `<button class="btn danger" style="margin-right:auto" onclick="returnLeadToAgency('${l.id}')">↩ Return to Agency</button>`
+   : '';
+
  document.getElementById('modal').className='modal';
  document.getElementById('modal').innerHTML=`<div class="modal-card"><div class="modal-head"><h2>${id?'Lead '+esc(l.id):'New Lead'}</h2><button class="x" onclick="closeModal()">×</button></div>
+ ${ownership}
  <div class="formgrid">
  <div class="field"><label>Name</label><input id="mName" value="${esc(l.name)}"></div>
  <div class="field"><label>Phone</label><input id="mPhone" value="${esc(l.phone)}"></div>
@@ -235,7 +285,12 @@ function openLead(id=''){
  ${currentUser.role==='admin'?`<div class="field"><label>Assigned Agent</label><select id="mAssigned"><option value="">Unassigned</option>${activeAgents().map(u=>`<option value="${u.id}" ${l.assigned===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>`:''}
  <div class="field"><label>Outcome</label><input id="mOutcome" value="${esc(l.outcome)}"></div>
  <div class="field span2"><label>Notes</label><textarea id="mNotes" rows="4">${esc(l.notes)}</textarea></div>
- </div><div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveLead('${l.id}',${id?'true':'false'})">Save Lead</button></div></div>`;
+ </div>
+ <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center">
+   ${returnButton}
+   <button class="btn secondary" onclick="closeModal()">Cancel</button>
+   <button class="btn" onclick="saveLead('${l.id}',${id?'true':'false'})">Save Lead</button>
+ </div></div>`;
 }
 async function saveLead(id,existing){
  let obj={id,name:mName.value.trim(),phone:mPhone.value.trim(),zip:mZip.value.trim(),type:mType.value,status:mStatus.value,assigned:currentUser.role==='admin'?(document.getElementById('mAssigned')?.value||''):currentUser.id,follow:mFollow.value,outcome:mOutcome.value.trim(),notes:mNotes.value.trim()};
@@ -265,13 +320,13 @@ function renderAssign(){
  if(currentUser.role!=='admin')return;
  let ua=leads.filter(l=>!l.assigned&&l.lead_origin==='agency');
  document.getElementById('assignView').innerHTML=`<section class="hello"><div><h1>Assign Leads</h1><div class="muted">Assign unassigned leads to an active agent.</div></div></section>
- <section class="panel"><div class="title">Unassigned Leads (${ua.length})</div>${ua.length?`<table><thead><tr><th>Lead</th><th>Type</th><th>Status</th><th>Assign To</th><th></th></tr></thead><tbody>${ua.map(l=>`<tr><td><b>${esc(l.name)}</b><br><small>${esc(l.phone)}</small></td><td>${esc(l.type)}</td><td>${statusPill(l.status)}</td><td><select id="assign_${l.id}"><option value="">Select agent</option>${activeAgents().map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select></td><td><button class="btn small" onclick="assignLead('${l.id}')">Assign</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">No unassigned leads right now.</p>'}</section>`;
+ <section class="panel"><div class="title">Unassigned Leads (${ua.length})</div>${ua.length?`<table><thead><tr><th>Lead</th><th>Type</th><th>Status</th><th>Assign To</th><th></th></tr></thead><tbody>${ua.map(l=>`<tr><td><b>${esc(l.name)}</b><br><small>${esc(l.phone)}</small></td><td>${esc(l.type)}</td><td>${statusPill(l.status)}${l.assignment_state==='Returned'?'<br><small style="color:var(--red);font-weight:700">Returned by agent</small>':''}</td><td><select id="assign_${l.id}"><option value="">Select agent</option>${activeAgents().map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select></td><td><button class="btn small" onclick="assignLead('${l.id}')">Assign</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">No unassigned leads right now.</p>'}</section>`;
 }
 async function assignLead(id){
  let v=document.getElementById('assign_'+id).value;
  if(!v){alert('Choose an agent first.');return}
  let l=leads.find(x=>x.id===id);
- const {error}=await sb.from('leads').update({assigned_to:v}).eq('id',l.dbid);
+ const {error}=await sb.from('leads').update({assigned_to:v,assignment_state:'Assigned',return_reason:null,return_note:null,returned_at:null}).eq('id',l.dbid);
  if(error){alert('Could not assign lead: '+error.message);return}
  await loadPortalData();renderAssign();
 }

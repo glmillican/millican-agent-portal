@@ -1,9 +1,9 @@
-Millican Portal V5.2
+Millican Portal V5.3
 Front-end-only correction. No SQL migration.
 
-- Agent dashboard lead rows are clickable and open the lead.
-- Co-op leads expose Return to Agency inside the lead modal.
-- Personal leads do not expose Return to Agency.
-- Standardizes + Add Lead wording.
+- Lead modal now visibly labels Agency / Co-op vs My Personal Lead.
+- Legacy agency leads default safely to Agency / Co-op in the UI.
+- Agent co-op lead modal now shows Return to Agency.
+- Personal lead modal does not show Return to Agency.
 
 Upload index.html and logo.png to GitHub. Do not rerun SQL.

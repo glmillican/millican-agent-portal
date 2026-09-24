@@ -1,0 +1,297 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Millican Insurance Agency Portal V4.2.2.1</title>
+<style>
+:root{--navy:#062f58;--navy2:#021e3a;--green:#8ee737;--blue:#1682e6;--bg:#f4f7fb;--line:#dce5ef;--red:#c72c41;--gold:#d39a1f}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#082a50}
+button,input,select,textarea{font:inherit}
+.hidden{display:none!important}
+.login-wrap{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#eaf2fa,#f7fbff)}
+.login-card{width:min(430px,92vw);background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:0 18px 50px #082a5020}
+.login-card img{width:210px;display:block;margin:0 auto 12px}.login-card h1{text-align:center;margin:8px 0 4px}.login-card p{text-align:center;color:#64768a;margin-top:0}
+.field{margin:13px 0}.field label{display:block;font-weight:700;margin-bottom:6px}.field input,.field select,.field textarea{width:100%;padding:11px 12px;border:1px solid #cfdbe7;border-radius:8px;background:#fff}
+.btn{background:var(--green);border:0;border-radius:8px;padding:10px 14px;font-weight:800;cursor:pointer;color:#082a50}
+.btn.secondary{background:#e8f2fb}.btn.danger{background:#ffd8dd;color:#8d1730}.btn.navy{background:var(--navy);color:white}.btn.small{padding:6px 10px;font-size:13px}
+.note{font-size:12px;color:#6b7d90;background:#f4f8fb;border-radius:8px;padding:10px;margin-top:12px}
+.top{height:108px;background:linear-gradient(100deg,#fff 0 18%,#06335e 18% 100%);display:flex;align-items:center;gap:30px;padding:10px 26px;color:white}
+.logo{width:205px}.brand{font-size:38px;font-style:italic;color:var(--green);font-family:cursive}.sub{letter-spacing:1.5px;font-size:13px}.user{margin-left:auto;text-align:right}
+.layout{display:grid;grid-template-columns:235px 1fr}.side{background:linear-gradient(#06335e,#03284b);min-height:calc(100vh - 108px);padding:18px 10px;color:white}
+.nav{padding:13px 16px;border-radius:8px;margin:4px 0;cursor:pointer}.nav:hover{background:#ffffff10}.nav.active{background:var(--green);color:#082a50;font-weight:800}
+.group{font-size:11px;letter-spacing:1.4px;color:#aac0d7;margin:21px 14px 8px}.main{padding:22px}.hello{display:flex;justify-content:space-between;align-items:start}.hello h1{font-size:34px;margin:0}.muted{color:#667b90}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:20px 0}.card,.panel{background:white;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 8px #0b31500d}.card{padding:18px;text-align:center}.num{font-size:30px;font-weight:800}.green{color:#198b39}.blue{color:#0878db}.red{color:var(--red)}
+.grid{display:grid;grid-template-columns:1.25fr .8fr .8fr;gap:16px}.panel{padding:16px;margin-bottom:16px}.title{font-size:19px;font-weight:800;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:14px}th{background:var(--navy);color:white;text-align:left;padding:10px;white-space:nowrap}td{padding:10px;border-bottom:1px solid #e7edf3;vertical-align:middle}
+tr.clickable{cursor:pointer}tr.clickable:hover{background:#f5faff}.pill{padding:4px 9px;border-radius:6px;background:#dff7ce;display:inline-block}.pill.yellow{background:#ffe9a9}.pill.blue{background:#d8edff}.pill.red{background:#ffdce2}.pill.gray{background:#e9eef3}
+.links{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.link{background:#eef6fd;border-radius:9px;padding:16px;text-align:center;font-weight:bold;cursor:pointer}
+.toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.toolbar .grow{flex:1}.toolbar input,.toolbar select{padding:9px;border:1px solid #ccd8e4;border-radius:8px}
+.view{display:none}.view.active{display:block}
+.modal{position:fixed;inset:0;background:#001b34a8;display:grid;place-items:center;padding:20px;z-index:20}.modal-card{background:#fff;width:min(760px,96vw);max-height:90vh;overflow:auto;border-radius:14px;padding:20px}
+.modal-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px}.x{font-size:25px;background:none;border:0;cursor:pointer}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.span2{grid-column:1/-1}
+.agent-list{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.agent-card{border:1px solid var(--line);border-radius:10px;padding:14px}.tag{font-size:12px;padding:3px 7px;border-radius:5px;background:#edf3f8}
+.resource{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--line);padding:12px;border-radius:9px;margin:9px 0}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:190px 1fr}.top{background:#06335e}.logo{background:white;border-radius:8px;padding:4px}}
+@media(max-width:720px){.layout{grid-template-columns:1fr}.side{min-height:auto}.cards,.agent-list,.formgrid{grid-template-columns:1fr}.top{height:auto;flex-wrap:wrap}.user{margin-left:0}.span2{grid-column:auto}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<section id="loginScreen" class="login-wrap">
+  <div class="login-card">
+    <img src="logo.png" alt="Millican Insurance Agency">
+    <h1>Agency Portal</h1><p>Sign in to continue</p>
+    <div class="field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@millican.agency"></div>
+    <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••"></div>
+    <button class="btn navy" style="width:100%" onclick="login()">Sign In</button>
+    <div class="note"><b>Secure portal login</b><br>Use your Millican Agency Portal account credentials.</div>
+  </div>
+</section>
+
+<div id="app" class="hidden">
+<header class="top"><img class="logo" src="logo.png"><div><div class="brand" id="portalTitle">Agent Portal</div><div class="sub">LEADS • TRAINING • CARRIERS • PRODUCTION</div></div><div class="user"><b id="userName"></b><br><small id="userRole"></small><br><button class="btn small secondary" onclick="logout()">Log Out</button></div></header>
+<div class="layout">
+<aside class="side" id="sidebar"></aside>
+<main class="main">
+  <section id="dashboardView" class="view active"></section>
+  <section id="leadsView" class="view"></section>
+  <section id="assignView" class="view"></section>
+  <section id="agentsView" class="view"></section>
+  <section id="trainingView" class="view"></section>
+  <section id="carriersView" class="view"></section>
+  <section id="productionView" class="view"></section>
+</main>
+</div>
+</div>
+<div id="modal" class="modal hidden"></div>
+
+<script>
+const SUPABASE_URL='https://hsrzsgipiznytrwqnyxn.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_KUoi_tNBht5FBo3AxESogQ_aUf19Ibt';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+
+let USERS=[];
+const DEFAULT_LEADS=[];
+const DEFAULT_TRAINING=[
+ {id:'TR1',title:'Medicare 101',category:'Core',assigned:['sandy','todd'],complete:['sandy'],url:'#'},
+ {id:'TR2',title:'AEP Compliance Checklist',category:'Compliance',assigned:['sandy','todd'],complete:[],url:'#'},
+ {id:'TR3',title:'DSNP Needs Assessment',category:'Sales Training',assigned:['sandy'],complete:[],url:'#'}
+];
+const DEFAULT_CARRIERS=[
+ {id:'UHC',name:'UnitedHealthcare',assigned:['sandy','todd'],status:{sandy:'Active',todd:'Active'},url:'#'},
+ {id:'HUM',name:'Humana',assigned:['sandy','todd'],status:{sandy:'Active',todd:'Active'},url:'#'},
+ {id:'WELL',name:'Wellcare',assigned:['sandy'],status:{sandy:'Active'},url:'#'},
+ {id:'DEV',name:'Devoted',assigned:['sandy'],status:{sandy:'Pending'},url:'#'},
+ {id:'AET',name:'Aetna',assigned:['todd'],status:{todd:'Active'},url:'#'}
+];
+function load(key,def){try{return JSON.parse(localStorage.getItem(key))||def}catch(e){return def}}
+let leads=[], training=load('mia_training',DEFAULT_TRAINING), carriers=load('mia_carriers',DEFAULT_CARRIERS);
+let currentUser=null;
+function save(){localStorage.setItem('mia_training',JSON.stringify(training));localStorage.setItem('mia_carriers',JSON.stringify(carriers))}
+
+async function loadPortalData(){
+ const {data:leadRows,error:leadError}=await sb.from('leads')
+   .select('id,lead_id,client_name,phone,email,zip,lead_type,status,assigned_to,follow_up_date,outcome,notes,carrier,plan_name,enrollment_type,expected_commission,created_at')
+   .order('created_at',{ascending:false});
+ if(leadError) throw leadError;
+ leads=(leadRows||[]).map(r=>({
+   dbid:r.id,id:r.lead_id||r.id,name:r.client_name||'',phone:r.phone||'',email:r.email||'',
+   zip:r.zip||'',type:r.lead_type||'',status:r.status||'New',assigned:r.assigned_to||'',
+   follow:r.follow_up_date||'',outcome:r.outcome||'',notes:r.notes||'',carrier:r.carrier||'',
+   plan_name:r.plan_name||'',enrollment_type:r.enrollment_type||'',expected_commission:r.expected_commission
+ }));
+ const {data:profiles,error:profileError}=await sb.from('profiles')
+   .select('id,full_name,email,role,active').order('full_name');
+ if(profileError) throw profileError;
+ USERS=(profiles||[]).map(p=>({id:p.id,name:p.full_name,email:p.email,role:p.role,active:p.active}));
+}
+function activeAgents(){return USERS.filter(u=>u.role==='agent'&&u.active)}
+
+function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+async function login(){
+ const e=document.getElementById('loginEmail').value.trim().toLowerCase();
+ const p=document.getElementById('loginPassword').value;
+ if(!e||!p){alert('Enter your email and password.');return}
+ const {data:authData,error:authError}=await sb.auth.signInWithPassword({email:e,password:p});
+ if(authError){alert('Sign in failed: '+authError.message);return}
+ const uid=authData.user.id;
+ const {data:profile,error:profileError}=await sb.from('profiles').select('id,full_name,email,role,active').eq('id',uid).single();
+ if(profileError||!profile||!profile.active){
+   await sb.auth.signOut();
+   alert('Your portal profile is missing or inactive. Contact the agency administrator.');
+   return;
+ }
+ currentUser={id:profile.id,name:profile.full_name,email:profile.email,role:profile.role,active:profile.active};
+ try{await loadPortalData();}catch(e){await sb.auth.signOut();alert('Could not load portal data: '+e.message);return}
+ document.getElementById('loginScreen').classList.add('hidden');
+ document.getElementById('app').classList.remove('hidden');
+ renderShell();showView('dashboard');
+}
+async function logout(){
+ await sb.auth.signOut();
+ currentUser=null;
+ document.getElementById('app').classList.add('hidden');
+ document.getElementById('loginScreen').classList.remove('hidden');
+ document.getElementById('loginPassword').value='';
+}
+function navItem(label,view,icon='•'){return `<div class="nav" data-view="${view}" onclick="showView('${view}')">${icon} &nbsp; ${label}</div>`}
+function renderShell(){
+ document.getElementById('userName').textContent=currentUser.name;
+ document.getElementById('userRole').textContent=currentUser.role==='admin'?'Administrator':'Agent';
+ document.getElementById('portalTitle').textContent=currentUser.role==='admin'?'Admin Portal':'Agent Portal';
+ let s=navItem('Dashboard','dashboard','⌂')+'<div class="group">LEADS & PRODUCTION</div>';
+ if(currentUser.role==='admin'){
+  s+=navItem('All Leads','leads','👥')+navItem('Assign Leads','assign','⇄')+navItem('Agency Production','production','▥')+'<div class="group">AGENT MANAGEMENT</div>'+navItem('Manage Agents','agents','⚙');
+ }else{
+  s+=navItem('My Leads','leads','👥')+navItem('My Production','production','▥');
+ }
+ s+='<div class="group">RESOURCES</div>'+navItem('Training Center','training','▣')+navItem('Carrier Center','carriers','🔗');
+ document.getElementById('sidebar').innerHTML=s;
+}
+function showView(v){
+ document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(v+'View').classList.add('active');
+ document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===v));
+ ({dashboard:renderDashboard,leads:renderLeads,assign:renderAssign,agents:renderAgents,training:renderTraining,carriers:renderCarriers,production:renderProduction}[v]||(()=>{}))();
+}
+function userName(id){return USERS.find(u=>u.id===id)?.name||'Unassigned'}
+function statusPill(s){let c=s==='SOLD'?'':s==='New'?'blue':s==='Contacted'||s==='Appointment'?'yellow':s==='Not Interested'?'red':'gray';return `<span class="pill ${c}">${esc(s)}</span>`}
+function scopedLeads(){return currentUser.role==='admin'?leads:leads.filter(l=>l.assigned===currentUser.id)}
+function renderDashboard(){
+ const ls=scopedLeads(), sold=ls.filter(l=>l.status==='SOLD').length, open=ls.filter(l=>l.status!=='SOLD'&&l.status!=='Not Interested').length, unassigned=leads.filter(l=>!l.assigned).length;
+ const first=currentUser.name.split(' ')[0];
+ document.getElementById('dashboardView').innerHTML=`
+ <section class="hello"><div><h1>${currentUser.role==='admin'?'Agency Dashboard':'Good Morning, '+esc(first)+'!'}</h1><div class="muted">${currentUser.role==='admin'?'Lead assignment, agent activity and agency resources.':'Here is your current workload and assigned resources.'}</div></div><div><b>Millican Insurance Agency</b></div></section>
+ <section class="cards">
+ <div class="card"><div class="num blue">${open}</div><b>${currentUser.role==='admin'?'Open Leads':'My Open Leads'}</b></div>
+ <div class="card"><div class="num green">${sold}</div><b>Sold / Enrolled</b></div>
+ <div class="card"><div class="num ${unassigned?'red':'green'}">${currentUser.role==='admin'?unassigned:training.filter(t=>t.assigned.includes(currentUser.id)&&!t.complete.includes(currentUser.id)).length}</div><b>${currentUser.role==='admin'?'Unassigned Leads':'Training Due'}</b></div>
+ <div class="card"><div class="num blue">${currentUser.role==='admin'?activeAgents().length:carriers.filter(c=>c.assigned.includes(currentUser.id)).length}</div><b>${currentUser.role==='admin'?'Active Agents':'Assigned Carriers'}</b></div>
+ </section>
+ <div class="grid">
+ <section class="panel"><div class="title">${currentUser.role==='admin'?'Recent Leads':'My Leads'} <button class="btn small" style="float:right" onclick="openLead()">+ New Lead</button></div>${leadTable(ls.slice(0,6))}</section>
+ <section class="panel"><div class="title">${currentUser.role==='admin'?'Agent Snapshot':'Training'}</div>${currentUser.role==='admin'?agentSnapshot():trainingSnapshot()}</section>
+ <section class="panel"><div class="title">${currentUser.role==='admin'?'Admin Shortcuts':'Carrier Readiness'}</div>${currentUser.role==='admin'?`<div class="links"><div class="link" onclick="showView('assign')">Assign Leads</div><div class="link" onclick="showView('agents')">Manage Agents</div><div class="link" onclick="showView('training')">Training</div><div class="link" onclick="showView('carriers')">Carriers</div></div>`:carrierSnapshot()}</section>
+ </div>`;
+}
+function leadTable(rows,showAssign=currentUser.role==='admin'){
+ if(!rows.length)return '<p class="muted">No leads found.</p>';
+ return `<table><thead><tr><th>Lead</th><th>Type</th><th>Status</th>${showAssign?'<th>Assigned To</th>':''}<th>Follow-Up</th></tr></thead><tbody>`+
+ rows.map(l=>`<tr class="clickable" onclick="openLead('${l.id}')"><td><b>${esc(l.name)}</b><br><small>${esc(l.phone)}</small></td><td>${esc(l.type)}</td><td>${statusPill(l.status)}</td>${showAssign?`<td>${esc(userName(l.assigned))}</td>`:''}<td>${esc(l.follow||'—')}</td></tr>`).join('')+'</tbody></table>';
+}
+function agentSnapshot(){return USERS.filter(u=>u.role==='agent').map(u=>{let x=leads.filter(l=>l.assigned===u.id),sold=x.filter(l=>l.status==='SOLD').length;return `<p><b>${esc(u.name)}</b><br><small>${x.length} leads • ${sold} sold • ${u.active?'Active':'Inactive'}</small></p>`}).join('')}
+function trainingSnapshot(){let x=training.filter(t=>t.assigned.includes(currentUser.id));return x.map(t=>`<div class="resource"><div><b>${esc(t.title)}</b><br><small>${esc(t.category)}</small></div>${t.complete.includes(currentUser.id)?'<span class="pill">Complete</span>':'<span class="pill yellow">Assigned</span>'}</div>`).join('')||'<p class="muted">No assigned training.</p>'}
+function carrierSnapshot(){let x=carriers.filter(c=>c.assigned.includes(currentUser.id));return x.map(c=>`<p><b>${esc(c.name)}</b><br><small>${esc(c.status[currentUser.id]||'Assigned')}</small></p>`).join('')||'<p class="muted">No carriers assigned.</p>'}
+function renderLeads(){
+ const ls=scopedLeads();
+ document.getElementById('leadsView').innerHTML=`<section class="hello"><div><h1>${currentUser.role==='admin'?'All Leads':'My Leads'}</h1><div class="muted">Open a lead to update status, follow-up, outcome and notes.</div></div></section>
+ <section class="panel"><div class="toolbar"><button class="btn" onclick="openLead()">+ Add Lead</button><div class="grow"></div><select id="leadStatusFilter" onchange="renderLeadsFiltered()"><option value="">All statuses</option><option>New</option><option>Contacted</option><option>Appointment</option><option>SOLD</option><option>Not Interested</option></select><input id="leadSearch" placeholder="Search name or phone" oninput="renderLeadsFiltered()"></div><div id="leadTableWrap">${leadTable(ls)}</div></section>`;
+}
+function renderLeadsFiltered(){
+ let q=document.getElementById('leadSearch').value.toLowerCase(), s=document.getElementById('leadStatusFilter').value;
+ let ls=scopedLeads().filter(l=>(!q||l.name.toLowerCase().includes(q)||l.phone.includes(q))&&(!s||l.status===s));
+ document.getElementById('leadTableWrap').innerHTML=leadTable(ls);
+}
+function openLead(id=''){
+ let l=id?leads.find(x=>x.id===id):{id:'L-'+Date.now(),name:'',phone:'',zip:'',type:'Age-In',status:'New',assigned:currentUser.role==='agent'?currentUser.id:'',follow:'',outcome:'',notes:''};
+ if(currentUser.role==='agent'&&id&&l.assigned!==currentUser.id)return;
+ document.getElementById('modal').className='modal';
+ document.getElementById('modal').innerHTML=`<div class="modal-card"><div class="modal-head"><h2>${id?'Lead '+esc(l.id):'New Lead'}</h2><button class="x" onclick="closeModal()">×</button></div>
+ <div class="formgrid">
+ <div class="field"><label>Name</label><input id="mName" value="${esc(l.name)}"></div>
+ <div class="field"><label>Phone</label><input id="mPhone" value="${esc(l.phone)}"></div>
+ <div class="field"><label>ZIP</label><input id="mZip" value="${esc(l.zip)}"></div>
+ <div class="field"><label>Lead Type</label><select id="mType"><option ${l.type==='Age-In'?'selected':''}>Age-In</option><option ${l.type==='Plan Change'?'selected':''}>Plan Change</option></select></div>
+ <div class="field"><label>Status</label><select id="mStatus">${['New','Contacted','Appointment','SOLD','Not Interested'].map(x=>`<option ${l.status===x?'selected':''}>${x}</option>`).join('')}</select></div>
+ <div class="field"><label>Follow-Up Date</label><input id="mFollow" type="date" value="${esc(l.follow)}"></div>
+ ${currentUser.role==='admin'?`<div class="field"><label>Assigned Agent</label><select id="mAssigned"><option value="">Unassigned</option>${activeAgents().map(u=>`<option value="${u.id}" ${l.assigned===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>`:''}
+ <div class="field"><label>Outcome</label><input id="mOutcome" value="${esc(l.outcome)}"></div>
+ <div class="field span2"><label>Notes</label><textarea id="mNotes" rows="4">${esc(l.notes)}</textarea></div>
+ </div><div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveLead('${l.id}',${id?'true':'false'})">Save Lead</button></div></div>`;
+}
+async function saveLead(id,existing){
+ let obj={id,name:mName.value.trim(),phone:mPhone.value.trim(),zip:mZip.value.trim(),type:mType.value,status:mStatus.value,assigned:currentUser.role==='admin'?(document.getElementById('mAssigned')?.value||''):currentUser.id,follow:mFollow.value,outcome:mOutcome.value.trim(),notes:mNotes.value.trim()};
+ if(!obj.name){alert('Lead name is required.');return}
+ const payload={
+   lead_id:obj.id,client_name:obj.name,phone:obj.phone||null,zip:obj.zip||null,
+   lead_type:obj.type||null,status:obj.status,assigned_to:obj.assigned||null,
+   follow_up_date:obj.follow||null,outcome:obj.outcome||null,notes:obj.notes||null
+ };
+ let result;
+ if(existing){
+   const old=leads.find(x=>x.id===id);
+   result=await sb.from('leads').update(payload).eq('id',old.dbid);
+ }else{
+   result=await sb.from('leads').insert(payload);
+ }
+ if(result.error){alert('Could not save lead: '+result.error.message);return}
+ await loadPortalData();closeModal();showView('leads');
+}
+function closeModal(){document.getElementById('modal').className='modal hidden';document.getElementById('modal').innerHTML=''}
+function renderAssign(){
+ if(currentUser.role!=='admin')return;
+ let ua=leads.filter(l=>!l.assigned);
+ document.getElementById('assignView').innerHTML=`<section class="hello"><div><h1>Assign Leads</h1><div class="muted">Assign unassigned leads to an active agent.</div></div></section>
+ <section class="panel"><div class="title">Unassigned Leads (${ua.length})</div>${ua.length?`<table><thead><tr><th>Lead</th><th>Type</th><th>Status</th><th>Assign To</th><th></th></tr></thead><tbody>${ua.map(l=>`<tr><td><b>${esc(l.name)}</b><br><small>${esc(l.phone)}</small></td><td>${esc(l.type)}</td><td>${statusPill(l.status)}</td><td><select id="assign_${l.id}"><option value="">Select agent</option>${activeAgents().map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select></td><td><button class="btn small" onclick="assignLead('${l.id}')">Assign</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">No unassigned leads right now.</p>'}</section>`;
+}
+async function assignLead(id){
+ let v=document.getElementById('assign_'+id).value;
+ if(!v){alert('Choose an agent first.');return}
+ let l=leads.find(x=>x.id===id);
+ const {error}=await sb.from('leads').update({assigned_to:v}).eq('id',l.dbid);
+ if(error){alert('Could not assign lead: '+error.message);return}
+ await loadPortalData();renderAssign();
+}
+function renderAgents(){
+ if(currentUser.role!=='admin')return;
+ document.getElementById('agentsView').innerHTML=`<section class="hello"><div><h1>Manage Agents</h1><div class="muted">V2 shows the access model. Real account creation/password resets will move to secure authentication.</div></div></section>
+ <section class="panel"><div class="agent-list">${USERS.filter(u=>u.role==='agent').map(u=>`<div class="agent-card"><h3>${esc(u.name)}</h3><p>${esc(u.email)}</p><span class="tag">${u.active?'Active':'Inactive'}</span><p><small>${leads.filter(l=>l.assigned===u.id).length} assigned leads</small></p><button class="btn small secondary" onclick="alert('Secure account management is enabled when the authentication backend is connected.')">Manage Access</button></div>`).join('')}</div></section>`;
+}
+function renderTraining(){
+ let items=currentUser.role==='admin'?training:training.filter(t=>t.assigned.includes(currentUser.id));
+ document.getElementById('trainingView').innerHTML=`<section class="hello"><div><h1>Training Center</h1><div class="muted">${currentUser.role==='admin'?'Create and assign agency training.':'Your assigned courses and documents.'}</div></div>${currentUser.role==='admin'?'<button class="btn" onclick="addTraining()">+ Add Training</button>':''}</section>
+ <section class="panel">${items.map(t=>`<div class="resource"><div><b>${esc(t.title)}</b><br><small>${esc(t.category)}${currentUser.role==='admin'?' • Assigned: '+t.assigned.map(userName).join(', '):''}</small></div><div>${currentUser.role==='agent'?(t.complete.includes(currentUser.id)?'<span class="pill">Complete</span>':`<button class="btn small" onclick="completeTraining('${t.id}')">Mark Complete</button>`):`<button class="btn small secondary" onclick="assignTraining('${t.id}')">Assign</button>`}</div></div>`).join('')||'<p class="muted">No training assigned.</p>'}</section>`;
+}
+function addTraining(){
+ let title=prompt('Training title'); if(!title)return; let cat=prompt('Category','Training')||'Training';
+ training.push({id:'TR'+Date.now(),title,category:cat,assigned:[],complete:[],url:'#'});save();renderTraining()
+}
+function assignTraining(id){
+ let t=training.find(x=>x.id===id); let choices=activeAgents().map(u=>u.id+': '+u.name).join('\n');
+ let idv=prompt('Enter agent id to assign:\n'+choices); if(!USERS.find(u=>u.id===idv&&u.role==='agent'))return;
+ if(!t.assigned.includes(idv))t.assigned.push(idv);save();renderTraining()
+}
+function completeTraining(id){let t=training.find(x=>x.id===id);if(!t.complete.includes(currentUser.id))t.complete.push(currentUser.id);save();renderTraining()}
+function renderCarriers(){
+ let items=currentUser.role==='admin'?carriers:carriers.filter(c=>c.assigned.includes(currentUser.id));
+ document.getElementById('carriersView').innerHTML=`<section class="hello"><div><h1>Carrier Center</h1><div class="muted">${currentUser.role==='admin'?'Assign carrier access and track readiness.':'Your assigned carrier resources and RTS status.'}</div></div>${currentUser.role==='admin'?'<button class="btn" onclick="addCarrier()">+ Add Carrier</button>':''}</section>
+ <section class="panel">${items.map(c=>`<div class="resource"><div><b>${esc(c.name)}</b><br><small>${currentUser.role==='admin'?'Assigned: '+c.assigned.map(userName).join(', '):(c.status[currentUser.id]||'Assigned')}</small></div><div>${currentUser.role==='admin'?`<button class="btn small secondary" onclick="assignCarrier('${c.id}')">Assign</button>`:`<button class="btn small secondary" onclick="alert('Carrier link placeholder — admin can attach the production carrier URL next.')">Open Carrier</button>`}</div></div>`).join('')||'<p class="muted">No carrier resources assigned.</p>'}</section>`;
+}
+function addCarrier(){let n=prompt('Carrier name');if(!n)return;carriers.push({id:'C'+Date.now(),name:n,assigned:[],status:{},url:'#'});save();renderCarriers()}
+function assignCarrier(id){
+ let c=carriers.find(x=>x.id===id);let choices=activeAgents().map(u=>u.id+': '+u.name).join('\n');let idv=prompt('Enter agent id to assign:\n'+choices);if(!USERS.find(u=>u.id===idv&&u.role==='agent'))return;
+ if(!c.assigned.includes(idv))c.assigned.push(idv);c.status[idv]=c.status[idv]||'Assigned';save();renderCarriers()
+}
+function renderProduction(){
+ let rows=(currentUser.role==='admin'?USERS.filter(u=>u.role==='agent'): [currentUser]).map(u=>{let x=leads.filter(l=>l.assigned===u.id), age=x.filter(l=>l.status==='SOLD'&&l.type==='Age-In').length, pc=x.filter(l=>l.status==='SOLD'&&l.type==='Plan Change').length;return {u,age,pc,total:age+pc}});
+ document.getElementById('productionView').innerHTML=`<section class="hello"><div><h1>${currentUser.role==='admin'?'Agency Production':'My Production'}</h1><div class="muted">V2 calculates counts from leads marked SOLD. Commission rules will be connected to the tracker next.</div></div></section><section class="panel"><table><thead><tr><th>Agent</th><th>Age-In</th><th>Plan Change</th><th>Total Sold</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.u.name)}</b></td><td>${r.age}</td><td>${r.pc}</td><td>${r.total}</td></tr>`).join('')}</tbody></table></section>`;
+}
+
+async function restoreSession(){
+ const {data}=await sb.auth.getSession();
+ if(!data.session)return;
+ const uid=data.session.user.id;
+ const {data:profile}=await sb.from('profiles').select('id,full_name,email,role,active').eq('id',uid).single();
+ if(!profile||!profile.active){await sb.auth.signOut();return}
+ currentUser={id:profile.id,name:profile.full_name,email:profile.email,role:profile.role,active:profile.active};
+ try{await loadPortalData();}catch(e){await sb.auth.signOut();alert('Could not load portal data: '+e.message);return}
+ document.getElementById('loginScreen').classList.add('hidden');
+ document.getElementById('app').classList.remove('hidden');
+ renderShell();showView('dashboard');
+}
+restoreSession();
+
+</script>
+</body>
+</html>

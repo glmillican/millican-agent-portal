@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Millican Insurance Agency Portal V4.2.2.1</title>
+<title>Millican Insurance Agency Portal V5.2.1</title>
 <style>
 :root{--navy:#062f58;--navy2:#021e3a;--green:#8ee737;--blue:#1682e6;--bg:#f4f7fb;--line:#dce5ef;--red:#c72c41;--gold:#d39a1f}
 *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#082a50}
@@ -93,21 +93,48 @@ function save(){localStorage.setItem('mia_training',JSON.stringify(training));lo
 
 async function loadPortalData(){
  const {data:leadRows,error:leadError}=await sb.from('leads')
-   .select('id,lead_id,client_name,phone,email,zip,lead_type,status,assigned_to,follow_up_date,outcome,notes,carrier,plan_name,enrollment_type,expected_commission,created_at')
+   .select('id,lead_id,client_name,phone,email,zip,lead_type,status,assigned_to,follow_up_date,outcome,notes,carrier,plan_name,enrollment_type,expected_commission,created_at,lead_origin,created_by,owner_id,assignment_state,return_reason,return_note,returned_at')
    .order('created_at',{ascending:false});
  if(leadError) throw leadError;
  leads=(leadRows||[]).map(r=>({
    dbid:r.id,id:r.lead_id||r.id,name:r.client_name||'',phone:r.phone||'',email:r.email||'',
    zip:r.zip||'',type:r.lead_type||'',status:r.status||'New',assigned:r.assigned_to||'',
    follow:r.follow_up_date||'',outcome:r.outcome||'',notes:r.notes||'',carrier:r.carrier||'',
-   plan_name:r.plan_name||'',enrollment_type:r.enrollment_type||'',expected_commission:r.expected_commission
+   plan_name:r.plan_name||'',enrollment_type:r.enrollment_type||'',expected_commission:r.expected_commission,lead_origin:r.lead_origin||'agency',created_by:r.created_by||'',owner_id:r.owner_id||'',assignment_state:r.assignment_state||'Assigned',return_reason:r.return_reason||'',return_note:r.return_note||'',returned_at:r.returned_at||''
  }));
  const {data:profiles,error:profileError}=await sb.from('profiles')
-   .select('id,full_name,email,role,active').order('full_name');
+   .select('id,full_name,email,role,active,coop_active').order('full_name');
  if(profileError) throw profileError;
- USERS=(profiles||[]).map(p=>({id:p.id,name:p.full_name,email:p.email,role:p.role,active:p.active}));
+ USERS=(profiles||[]).map(p=>({id:p.id,name:p.full_name,email:p.email,role:p.role,active:p.active,coop_active:!!p.coop_active}));
 }
-function activeAgents(){return USERS.filter(u=>u.role==='agent'&&u.active)}
+function activeAgents(){return USERS.filter(u=>u.active&&u.coop_active)}
+function isPersonalLead(l){return l.lead_origin==='agent'}
+function canExportLead(l){return isPersonalLead(l)&&l.created_by===currentUser.id}
+function csvEscape(v){v=(v??'').toString();return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function downloadMyPersonalLeads(){
+ const mine=leads.filter(canExportLead);
+ if(!mine.length){alert('You do not have any personal leads to download.');return}
+ const cols=['Lead ID','Client Name','Phone','Email','ZIP','Lead Type','Status','Follow-Up Date','Outcome','Notes','Carrier','Plan','Enrollment Type'];
+ const rows=mine.map(l=>[l.id,l.name,l.phone,l.email,l.zip,l.type,l.status,l.follow,l.outcome,l.notes,l.carrier,l.plan_name,l.enrollment_type]);
+ const csv=[cols,...rows].map(r=>r.map(csvEscape).join(',')).join('\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);a.download='my-personal-leads.csv';a.click();URL.revokeObjectURL(a.href);
+}
+async function returnLeadToAgency(id){
+ const l=leads.find(x=>x.id===id);
+ if(!l||l.lead_origin!=='agency'){alert('Only agency/co-op leads can be returned.');return}
+ const reason=prompt('Return reason: Unable to Reach, Bad/Invalid Lead, Not Interested, Duplicate, Not Eligible, Requested Different Agent, or Other');
+ if(!reason)return;
+ const note=prompt('Optional return note:')||'';
+ const {error}=await sb.from('leads').update({assigned_to:null,assignment_state:'Returned',return_reason:reason,return_note:note,returned_at:new Date().toISOString()}).eq('id',l.dbid);
+ if(error){alert('Could not return lead: '+error.message);return}
+ await loadPortalData();showView('leads');
+}
+async function toggleCoop(uid,on){
+ const {error}=await sb.from('profiles').update({coop_active:on}).eq('id',uid);
+ if(error){alert('Could not update co-op status: '+error.message);return}
+ await loadPortalData();renderAgents();
+}
 
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 async function login(){
@@ -213,14 +240,19 @@ function openLead(id=''){
 async function saveLead(id,existing){
  let obj={id,name:mName.value.trim(),phone:mPhone.value.trim(),zip:mZip.value.trim(),type:mType.value,status:mStatus.value,assigned:currentUser.role==='admin'?(document.getElementById('mAssigned')?.value||''):currentUser.id,follow:mFollow.value,outcome:mOutcome.value.trim(),notes:mNotes.value.trim()};
  if(!obj.name){alert('Lead name is required.');return}
+ let origin='agent';
+ if(currentUser.role==='admin'&&!existing){origin=confirm('Is this an Agency / Co-op lead?\n\nOK = Agency/Co-op\nCancel = My Personal Lead')?'agency':'agent'}
+ const old=existing?leads.find(x=>x.id===id):null;
+ if(existing)origin=old.lead_origin||'agency';
  const payload={
    lead_id:obj.id,client_name:obj.name,phone:obj.phone||null,zip:obj.zip||null,
-   lead_type:obj.type||null,status:obj.status,assigned_to:obj.assigned||null,
-   follow_up_date:obj.follow||null,outcome:obj.outcome||null,notes:obj.notes||null
+   lead_type:obj.type||null,status:obj.status,
+   assigned_to:existing?(currentUser.role==='admin'?(obj.assigned||null):old.assigned):(origin==='agent'?currentUser.id:(obj.assigned||null)),
+   follow_up_date:obj.follow||null,outcome:obj.outcome||null,notes:obj.notes||null,lead_origin:origin
  };
+ if(!existing){payload.created_by=currentUser.id;payload.owner_id=origin==='agent'?currentUser.id:null}
  let result;
  if(existing){
-   const old=leads.find(x=>x.id===id);
    result=await sb.from('leads').update(payload).eq('id',old.dbid);
  }else{
    result=await sb.from('leads').insert(payload);

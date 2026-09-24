@@ -1,16 +1,9 @@
-Millican Insurance Agency Portal V4
+Millican Portal V5
+Adds agent-owned personal leads, personal-lead-only CSV export, Return to Agency for co-op leads,
+and an independent Lead Co-op membership flag (Gary can be Admin + co-op member; Amy can be Agent + non-co-op).
 
-V4 milestone:
-- Real Supabase authentication
-- Real leads loaded from public.leads
-- Dashboard lead counts use Supabase data
-- Recent Leads and All Leads use Supabase data
-- Add/Edit Lead writes to Supabase
-- Assign Lead writes to Supabase
-- Agent names come from public.profiles
-
-Expected current test:
-Gary logs in as admin and should see TEST-001 / Test Client from Supabase.
-
-Training and Carrier Center remain prototype/local data for now.
-Do not enter real Medicare/PII data until agent-level RLS testing is completed.
+Install:
+1. Run V5_DATABASE_MIGRATION.sql in Supabase SQL Editor.
+2. Replace GitHub index.html with V5 index.html.
+3. Wait for Pages deployment and hard refresh.
+4. Test with fake data before real client information.

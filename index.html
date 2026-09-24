@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Millican Insurance Agency Portal V5.4</title>
+<title>Millican Insurance Agency Portal V6.0</title>
 <style>
 :root{--navy:#062f58;--navy2:#021e3a;--green:#8ee737;--blue:#1682e6;--bg:#f4f7fb;--line:#dce5ef;--red:#c72c41;--gold:#d39a1f}
 *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#082a50}
@@ -93,14 +93,14 @@ function save(){localStorage.setItem('mia_training',JSON.stringify(training));lo
 
 async function loadPortalData(){
  const {data:leadRows,error:leadError}=await sb.from('leads')
-   .select('id,lead_id,client_name,phone,email,zip,lead_type,status,assigned_to,follow_up_date,outcome,notes,carrier,plan_name,enrollment_type,expected_commission,created_at,lead_origin,created_by,owner_id,assignment_state,return_reason,return_note,returned_at')
+   .select('id,lead_id,client_name,phone,email,zip,lead_type,status,assigned_to,follow_up_date,outcome,notes,carrier,plan_name,enrollment_type,expected_commission,created_at,lead_origin,created_by,owner_id,assignment_state,return_reason,return_note,returned_at,lead_source,campaign,source_detail')
    .order('created_at',{ascending:false});
  if(leadError) throw leadError;
  leads=(leadRows||[]).map(r=>({
    dbid:r.id,id:r.lead_id||r.id,name:r.client_name||'',phone:r.phone||'',email:r.email||'',
    zip:r.zip||'',type:r.lead_type||'',status:r.status||'New',assigned:r.assigned_to||'',
    follow:r.follow_up_date||'',outcome:r.outcome||'',notes:r.notes||'',carrier:r.carrier||'',
-   plan_name:r.plan_name||'',enrollment_type:r.enrollment_type||'',expected_commission:r.expected_commission,lead_origin:r.lead_origin||'agency',created_by:r.created_by||'',owner_id:r.owner_id||'',assignment_state:r.assignment_state||'Assigned',return_reason:r.return_reason||'',return_note:r.return_note||'',returned_at:r.returned_at||''
+   plan_name:r.plan_name||'',enrollment_type:r.enrollment_type||'',expected_commission:r.expected_commission,lead_origin:r.lead_origin||'agency',created_by:r.created_by||'',owner_id:r.owner_id||'',assignment_state:r.assignment_state||'Assigned',return_reason:r.return_reason||'',return_note:r.return_note||'',returned_at:r.returned_at||'',created_at:r.created_at||'',lead_source:r.lead_source||'',campaign:r.campaign||'',source_detail:r.source_detail||''
  }));
  const {data:profiles,error:profileError}=await sb.from('profiles')
    .select('id,full_name,email,role,active,coop_active').order('full_name');
@@ -185,7 +185,7 @@ function renderShell(){
  document.getElementById('portalTitle').textContent=currentUser.role==='admin'?'Admin Portal':'Agent Portal';
  let s=navItem('Dashboard','dashboard','⌂')+'<div class="group">LEADS & PRODUCTION</div>';
  if(currentUser.role==='admin'){
-  s+=navItem('All Leads','leads','👥')+navItem('Assign Leads','assign','⇄')+navItem('Agency Production','production','▥')+'<div class="group">AGENT MANAGEMENT</div>'+navItem('Manage Agents','agents','⚙');
+  s+=navItem('All Leads','leads','👥')+navItem('Lead Inbox','assign','⇄')+navItem('Agency Production','production','▥')+'<div class="group">AGENT MANAGEMENT</div>'+navItem('Manage Agents','agents','⚙');
  }else{
   s+=navItem('My Leads','leads','👥')+navItem('My Production','production','▥');
  }
@@ -208,13 +208,13 @@ function renderDashboard(){
  <section class="cards">
  <div class="card"><div class="num blue">${open}</div><b>${currentUser.role==='admin'?'Open Leads':'My Open Leads'}</b></div>
  <div class="card"><div class="num green">${sold}</div><b>Sold / Enrolled</b></div>
- <div class="card"><div class="num ${unassigned?'red':'green'}">${currentUser.role==='admin'?unassigned:training.filter(t=>t.assigned.includes(currentUser.id)&&!t.complete.includes(currentUser.id)).length}</div><b>${currentUser.role==='admin'?'Unassigned Leads':'Training Due'}</b></div>
+ <div class="card"><div class="num ${unassigned?'red':'green'}">${currentUser.role==='admin'?unassigned:training.filter(t=>t.assigned.includes(currentUser.id)&&!t.complete.includes(currentUser.id)).length}</div><b>${currentUser.role==='admin'?'Lead Inbox':'Training Due'}</b></div>
  <div class="card"><div class="num blue">${currentUser.role==='admin'?activeAgents().length:carriers.filter(c=>c.assigned.includes(currentUser.id)).length}</div><b>${currentUser.role==='admin'?'Active Agents':'Assigned Carriers'}</b></div>
  </section>
  <div class="grid">
  <section class="panel"><div class="title">${currentUser.role==='admin'?'Recent Leads':'My Leads'} <button class="btn small" style="float:right" onclick="openLead()">+ Add Lead</button></div>${leadTable(ls.slice(0,6))}</section>
  <section class="panel"><div class="title">${currentUser.role==='admin'?'Agent Snapshot':'Training'}</div>${currentUser.role==='admin'?agentSnapshot():trainingSnapshot()}</section>
- <section class="panel"><div class="title">${currentUser.role==='admin'?'Admin Shortcuts':'Carrier Readiness'}</div>${currentUser.role==='admin'?`<div class="links"><div class="link" onclick="showView('assign')">Assign Leads</div><div class="link" onclick="showView('agents')">Manage Agents</div><div class="link" onclick="showView('training')">Training</div><div class="link" onclick="showView('carriers')">Carriers</div></div>`:carrierSnapshot()}</section>
+ <section class="panel"><div class="title">${currentUser.role==='admin'?'Admin Shortcuts':'Carrier Readiness'}</div>${currentUser.role==='admin'?`<div class="links"><div class="link" onclick="showView('assign')">Lead Inbox</div><div class="link" onclick="showView('agents')">Manage Agents</div><div class="link" onclick="showView('training')">Training</div><div class="link" onclick="showView('carriers')">Carriers</div></div>`:carrierSnapshot()}</section>
  </div>`;
 }
 function leadTable(rows,showAssign=currentUser.role==='admin'){
@@ -236,7 +236,7 @@ function renderLeadsFiltered(){
  document.getElementById('leadTableWrap').innerHTML=leadTable(ls);
 }
 function openLead(id=''){
- let l=id?leads.find(x=>x.id===id):{id:'L-'+Date.now(),name:'',phone:'',zip:'',type:'Age-In',status:'New',assigned:currentUser.role==='agent'?currentUser.id:'',follow:'',outcome:'',notes:'',lead_origin:currentUser.role==='agent'?'agent':'agency',created_by:currentUser.id,owner_id:currentUser.role==='agent'?currentUser.id:''};
+ let l=id?leads.find(x=>x.id===id):{id:'L-'+Date.now(),name:'',phone:'',zip:'',type:'Age-In',status:'New',assigned:currentUser.role==='agent'?currentUser.id:'',follow:'',outcome:'',notes:'',lead_origin:currentUser.role==='agent'?'agent':'agency',created_by:currentUser.id,owner_id:currentUser.role==='agent'?currentUser.id:'',lead_source:currentUser.role==='agent'?'Agent Generated':'Manual Entry',campaign:'',source_detail:''};
  if(!l)return;
  if(currentUser.role==='agent'&&id&&l.assigned!==currentUser.id)return;
 
@@ -280,6 +280,10 @@ function openLead(id=''){
  <div class="field"><label>Phone</label><input id="mPhone" value="${esc(l.phone)}"></div>
  <div class="field"><label>ZIP</label><input id="mZip" value="${esc(l.zip)}"></div>
  <div class="field"><label>Lead Type</label><select id="mType"><option ${l.type==='Age-In'?'selected':''}>Age-In</option><option ${l.type==='Plan Change'?'selected':''}>Plan Change</option></select></div>
+ ${currentUser.role==='admin'?`<div class="field"><label>Ownership</label><select id="mOrigin"><option value="agency" ${(l.lead_origin||'agency')==='agency'?'selected':''}>Agency / Co-op</option><option value="agent" ${l.lead_origin==='agent'?'selected':''}>My Personal Lead</option></select></div>
+ <div class="field"><label>Lead Source</label><select id="mSource"><option ${l.lead_source==='Facebook / Meta'?'selected':''}>Facebook / Meta</option><option ${l.lead_source==='Website / Fact Finder'?'selected':''}>Website / Fact Finder</option><option ${l.lead_source==='Seminar / Event'?'selected':''}>Seminar / Event</option><option ${l.lead_source==='Referral'?'selected':''}>Referral</option><option ${l.lead_source==='Walk-In'?'selected':''}>Walk-In</option><option ${l.lead_source==='Phone Call'?'selected':''}>Phone Call</option><option ${l.lead_source==='Kroger'?'selected':''}>Kroger</option><option ${l.lead_source==='Manual Entry'||!l.lead_source?'selected':''}>Manual Entry</option><option ${l.lead_source==='Other'?'selected':''}>Other</option></select></div>
+ <div class="field"><label>Campaign / Event</label><input id="mCampaign" value="${esc(l.campaign||'')}" placeholder="Example: AEP 2027"></div>
+ <div class="field"><label>Source Detail</label><input id="mSourceDetail" value="${esc(l.source_detail||'')}" placeholder="Ad set, event, referral source, etc."></div>`:`<div class="field"><label>Lead Source</label><input value="${esc(l.lead_source||'Agent Generated')}" disabled></div>`}
  <div class="field"><label>Status</label><select id="mStatus">${['New','Contacted','Appointment','SOLD','Not Interested'].map(x=>`<option ${l.status===x?'selected':''}>${x}</option>`).join('')}</select></div>
  <div class="field"><label>Follow-Up Date</label><input id="mFollow" type="date" value="${esc(l.follow)}"></div>
  ${currentUser.role==='admin'?`<div class="field"><label>Assigned Agent</label><select id="mAssigned"><option value="">Unassigned</option>${activeAgents().map(u=>`<option value="${u.id}" ${l.assigned===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>`:''}
@@ -293,34 +297,75 @@ function openLead(id=''){
  </div></div>`;
 }
 async function saveLead(id,existing){
- let obj={id,name:mName.value.trim(),phone:mPhone.value.trim(),zip:mZip.value.trim(),type:mType.value,status:mStatus.value,assigned:currentUser.role==='admin'?(document.getElementById('mAssigned')?.value||''):currentUser.id,follow:mFollow.value,outcome:mOutcome.value.trim(),notes:mNotes.value.trim()};
+ let old=existing?leads.find(x=>x.id===id):null;
+ let origin=currentUser.role==='admin'?(document.getElementById('mOrigin')?.value||(old?.lead_origin||'agency')):'agent';
+ let obj={
+   id,name:mName.value.trim(),phone:mPhone.value.trim(),zip:mZip.value.trim(),type:mType.value,status:mStatus.value,
+   assigned:currentUser.role==='admin'?(document.getElementById('mAssigned')?.value||''):currentUser.id,
+   follow:mFollow.value,outcome:mOutcome.value.trim(),notes:mNotes.value.trim(),
+   lead_source:currentUser.role==='admin'?(document.getElementById('mSource')?.value||'Manual Entry'):'Agent Generated',
+   campaign:currentUser.role==='admin'?(document.getElementById('mCampaign')?.value.trim()||''):'',
+   source_detail:currentUser.role==='admin'?(document.getElementById('mSourceDetail')?.value.trim()||''):''
+ };
  if(!obj.name){alert('Lead name is required.');return}
- let origin='agent';
- if(currentUser.role==='admin'&&!existing){origin=confirm('Is this an Agency / Co-op lead?\n\nOK = Agency/Co-op\nCancel = My Personal Lead')?'agency':'agent'}
- const old=existing?leads.find(x=>x.id===id):null;
- if(existing)origin=old.lead_origin||'agency';
+ if(existing)origin=old.lead_origin||origin;
+
  const payload={
    lead_id:obj.id,client_name:obj.name,phone:obj.phone||null,zip:obj.zip||null,
    lead_type:obj.type||null,status:obj.status,
    assigned_to:existing?(currentUser.role==='admin'?(obj.assigned||null):old.assigned):(origin==='agent'?currentUser.id:(obj.assigned||null)),
-   follow_up_date:obj.follow||null,outcome:obj.outcome||null,notes:obj.notes||null,lead_origin:origin
+   follow_up_date:obj.follow||null,outcome:obj.outcome||null,notes:obj.notes||null,
+   lead_origin:origin,
+   lead_source:existing?(old.lead_source||obj.lead_source):obj.lead_source,
+   campaign:existing?(old.campaign||obj.campaign):obj.campaign||null,
+   source_detail:existing?(old.source_detail||obj.source_detail):obj.source_detail||null,
+   assignment_state:existing?(old.assignment_state||'Assigned'):(origin==='agency'?'Unassigned':'Assigned')
  };
  if(!existing){payload.created_by=currentUser.id;payload.owner_id=origin==='agent'?currentUser.id:null}
- let result;
- if(existing){
-   result=await sb.from('leads').update(payload).eq('id',old.dbid);
- }else{
-   result=await sb.from('leads').insert(payload);
- }
+ let result=existing
+   ? await sb.from('leads').update(payload).eq('id',old.dbid)
+   : await sb.from('leads').insert(payload);
  if(result.error){alert('Could not save lead: '+result.error.message);return}
- await loadPortalData();closeModal();showView('leads');
+ await loadPortalData();closeModal();
+ showView(currentUser.role==='admin'&&origin==='agency'?'assign':'leads');
 }
 function closeModal(){document.getElementById('modal').className='modal hidden';document.getElementById('modal').innerHTML=''}
 function renderAssign(){
  if(currentUser.role!=='admin')return;
  let ua=leads.filter(l=>!l.assigned&&l.lead_origin==='agency');
- document.getElementById('assignView').innerHTML=`<section class="hello"><div><h1>Assign Leads</h1><div class="muted">Assign unassigned leads to an active agent.</div></div></section>
- <section class="panel"><div class="title">Unassigned Leads (${ua.length})</div>${ua.length?`<table><thead><tr><th>Lead</th><th>Type</th><th>Status</th><th>Assign To</th><th></th></tr></thead><tbody>${ua.map(l=>`<tr><td><b>${esc(l.name)}</b><br><small>${esc(l.phone)}</small></td><td>${esc(l.type)}</td><td>${statusPill(l.status)}${l.assignment_state==='Returned'?'<br><small style="color:var(--red);font-weight:700">Returned by agent</small>':''}</td><td><select id="assign_${l.id}"><option value="">Select agent</option>${activeAgents().map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select></td><td><button class="btn small" onclick="assignLead('${l.id}')">Assign</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">No unassigned leads right now.</p>'}</section>`;
+ let returned=ua.filter(l=>l.assignment_state==='Returned').length;
+ let fresh=ua.length-returned;
+ const sources=[...new Set(ua.map(l=>l.lead_source||'Unknown'))].sort();
+ document.getElementById('assignView').innerHTML=`<section class="hello"><div><h1>Agency Lead Inbox</h1><div class="muted">Every agency-owned lead lands here first. Review it, see where it came from, then assign it to an active Lead Co-op member.</div></div><button class="btn" onclick="openLead()">+ Add Agency Lead</button></section>
+ <section class="cards" style="grid-template-columns:repeat(3,1fr)">
+   <div class="card"><div class="num blue">${ua.length}</div><b>Waiting for Assignment</b></div>
+   <div class="card"><div class="num green">${fresh}</div><b>New Intake</b></div>
+   <div class="card"><div class="num ${returned?'red':'green'}">${returned}</div><b>Returned by Agents</b></div>
+ </section>
+ <section class="panel">
+   <div class="toolbar"><b>Inbox</b><div class="grow"></div>
+     <select id="inboxSource" onchange="renderInboxRows()"><option value="">All sources</option>${sources.map(s=>`<option>${esc(s)}</option>`).join('')}</select>
+     <input id="inboxSearch" placeholder="Search name, phone or ZIP" oninput="renderInboxRows()">
+   </div>
+   <div id="inboxRows"></div>
+ </section>`;
+ renderInboxRows();
+}
+function renderInboxRows(){
+ let q=(document.getElementById('inboxSearch')?.value||'').toLowerCase();
+ let source=document.getElementById('inboxSource')?.value||'';
+ let ua=leads.filter(l=>!l.assigned&&l.lead_origin==='agency')
+   .filter(l=>(!source||(l.lead_source||'Unknown')===source)&&(!q||l.name.toLowerCase().includes(q)||l.phone.includes(q)||l.zip.includes(q)));
+ document.getElementById('inboxRows').innerHTML=ua.length?`<table><thead><tr><th>Lead</th><th>Source</th><th>Campaign</th><th>Type</th><th>Received</th><th>Status</th><th>Assign To</th><th></th></tr></thead><tbody>${ua.map(l=>`<tr>
+   <td class="clickable" onclick="openLead('${l.id}')"><b>${esc(l.name)}</b><br><small>${esc(l.phone)}${l.zip?' • '+esc(l.zip):''}</small></td>
+   <td><b>${esc(l.lead_source||'Unknown')}</b>${l.source_detail?'<br><small>'+esc(l.source_detail)+'</small>':''}</td>
+   <td>${esc(l.campaign||'—')}</td>
+   <td>${esc(l.type||'—')}</td>
+   <td>${l.created_at?new Date(l.created_at).toLocaleString():'—'}</td>
+   <td>${statusPill(l.status)}${l.assignment_state==='Returned'?'<br><small style="color:var(--red);font-weight:700">↩ Returned</small>':''}</td>
+   <td><select id="assign_${l.id}"><option value="">Select co-op member</option>${activeAgents().map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select></td>
+   <td><button class="btn small" onclick="assignLead('${l.id}')">Assign</button></td>
+ </tr>`).join('')}</tbody></table>`:'<p class="muted">The Agency Lead Inbox is clear.</p>';
 }
 async function assignLead(id){
  let v=document.getElementById('assign_'+id).value;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Millican Insurance Agency Portal V6.2</title>
+<title>Millican Insurance Agency Portal V6.3</title>
 <style>
 :root{--navy:#062f58;--navy2:#021e3a;--green:#8ee737;--blue:#1682e6;--bg:#f4f7fb;--line:#dce5ef;--red:#c72c41;--gold:#d39a1f}
 *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#082a50}
@@ -48,6 +48,7 @@ tr.clickable{cursor:pointer}tr.clickable:hover{background:#f5faff}.pill{padding:
     <div class="field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@millican.agency"></div>
     <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••"></div>
     <button class="btn navy" style="width:100%" onclick="login()">Sign In</button>
+    <div style="text-align:center;margin-top:12px"><button class="btn secondary small" onclick="forgotPassword()">Forgot Password?</button></div>
     <div class="note"><b>Secure portal login</b><br>Use your Millican Agency Portal account credentials.</div>
   </div>
 </section>
@@ -185,6 +186,28 @@ async function login(){
  document.getElementById('app').classList.remove('hidden');
  renderShell();showView('dashboard');
 }
+async function forgotPassword(){
+ const email=(document.getElementById('loginEmail')?.value||'').trim().toLowerCase() || prompt('Enter the email address for your portal account:');
+ if(!email)return;
+ const redirectTo=window.location.origin+window.location.pathname;
+ const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
+ if(error){alert('Could not send password reset email: '+error.message);return}
+ alert('Password reset email sent. Check your inbox and follow the secure link to create a new password.');
+}
+function openPasswordReset(){
+ document.getElementById('modal').className='modal';
+ document.getElementById('modal').innerHTML=`<div class="modal-card" style="width:min(500px,96vw)"><div class="modal-head"><h2>Create New Password</h2></div><p class="muted">Choose a new password for your Millican Agency Portal account.</p><div class="field"><label>New Password</label><input id="newPassword" type="password" autocomplete="new-password"></div><div class="field"><label>Confirm New Password</label><input id="confirmPassword" type="password" autocomplete="new-password"></div><button class="btn navy" style="width:100%" onclick="saveNewPassword()">Save New Password</button></div>`;
+}
+async function saveNewPassword(){
+ const p=document.getElementById('newPassword').value, c=document.getElementById('confirmPassword').value;
+ if(p.length<8){alert('Use at least 8 characters.');return}
+ if(p!==c){alert('The passwords do not match.');return}
+ const {error}=await sb.auth.updateUser({password:p});
+ if(error){alert('Could not update password: '+error.message);return}
+ closeModal();alert('Password updated successfully. You can now use your new password.');
+}
+sb.auth.onAuthStateChange((event)=>{if(event==='PASSWORD_RECOVERY')setTimeout(openPasswordReset,0)});
+
 async function logout(){
  await sb.auth.signOut();
  currentUser=null;
@@ -391,8 +414,26 @@ function lobName(id){return LOBS.find(x=>x.id===id)?.name||''}
 function renderAgents(){
  if(currentUser.role!=='admin')return;
  const people=USERS.filter(u=>u.active);
- document.getElementById('agentsView').innerHTML=`<section class="hello"><div><h1>Manage Agents</h1><div class="muted">Control portal access, Lead Co-op participation, Lines of Business and carrier assignments.</div></div></section><section class="panel"><div class="agent-list">${people.map(u=>{const ln=agentLobIds(u.id).map(lobName).filter(Boolean),cn=agentCarrierIds(u.id).map(id=>DB_CARRIERS.find(c=>c.id===id)?.carrier_name).filter(Boolean);return `<div class="agent-card"><h3>${esc(u.name)} ${u.role==='admin'?'<span class="tag">Administrator</span>':''}</h3><p>${esc(u.email)}</p><p><span class="tag">Portal: ${u.active?'Active':'Inactive'}</span></p><p><label style="font-weight:700"><input type="checkbox" ${u.coop_active?'checked':''} onchange="toggleCoop('${u.id}',this.checked)"> Lead Co-op ${u.coop_active?'ON':'OFF'}</label></p><p><b>Lines of Business</b><br><small>${ln.length?ln.map(esc).join(' • '):'None assigned'}</small></p><p><b>Carriers</b><br><small>${cn.length?cn.map(esc).join(' • '):'None assigned'}</small></p><p><small>${leads.filter(l=>l.assigned===u.id&&l.lead_origin==='agency').length} assigned co-op leads</small></p><button class="btn small" onclick="openAgentSetup('${u.id}')">Manage Training & Carriers</button> <button class="btn small secondary" onclick="alert('Account/password management remains in secure authentication.')">Manage Access</button></div>`}).join('')}</div></section>`;
+ document.getElementById('agentsView').innerHTML=`<section class="hello"><div><h1>Manage Agents</h1><div class="muted">Control portal access, Lead Co-op participation, Lines of Business and carrier assignments.</div></div><button class="btn" onclick="openAddAgent()">+ Add Agent</button></section><section class="panel"><div class="agent-list">${people.map(u=>{const ln=agentLobIds(u.id).map(lobName).filter(Boolean),cn=agentCarrierIds(u.id).map(id=>DB_CARRIERS.find(c=>c.id===id)?.carrier_name).filter(Boolean);return `<div class="agent-card"><h3>${esc(u.name)} ${u.role==='admin'?'<span class="tag">Administrator</span>':''}</h3><p>${esc(u.email)}</p><p><span class="tag">Portal: ${u.active?'Active':'Inactive'}</span></p><p><label style="font-weight:700"><input type="checkbox" ${u.coop_active?'checked':''} onchange="toggleCoop('${u.id}',this.checked)"> Lead Co-op ${u.coop_active?'ON':'OFF'}</label></p><p><b>Lines of Business</b><br><small>${ln.length?ln.map(esc).join(' • '):'None assigned'}</small></p><p><b>Carriers</b><br><small>${cn.length?cn.map(esc).join(' • '):'None assigned'}</small></p><p><small>${leads.filter(l=>l.assigned===u.id&&l.lead_origin==='agency').length} assigned co-op leads</small></p><button class="btn small" onclick="openAgentSetup('${u.id}')">Manage Training & Carriers</button> <button class="btn small secondary" onclick="alert('Account/password management remains in secure authentication.')">Manage Access</button></div>`}).join('')}</div></section>`;
 }
+function openAddAgent(){
+ if(currentUser.role!=='admin')return;
+ document.getElementById('modal').className='modal';
+ document.getElementById('modal').innerHTML=`<div class="modal-card" style="width:min(620px,96vw)"><div class="modal-head"><div><h2 style="margin:0">Add Agent</h2><small>Create the account and email a secure invitation.</small></div><button class="x" onclick="closeModal()">×</button></div><div class="note" style="border-left:5px solid var(--green)"><b>No public registration.</b><br>You create the agent here. They receive an email and create their own password. You never need to know it.</div><div class="formgrid"><div class="field"><label>Full Name</label><input id="newAgentName" placeholder="Curtis Smith"></div><div class="field"><label>Email</label><input id="newAgentEmail" type="email" placeholder="agent@example.com"></div><div class="field"><label>Portal Role</label><select id="newAgentRole"><option value="agent">Agent</option><option value="admin">Administrator</option></select></div><div class="field"><label>Lead Co-op</label><select id="newAgentCoop"><option value="false">Off</option><option value="true">On</option></select></div></div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" id="createAgentBtn" onclick="createAgentInvite()">Create Agent & Send Invitation</button></div></div>`;
+}
+async function createAgentInvite(){
+ if(currentUser.role!=='admin')return;
+ const full_name=(document.getElementById('newAgentName')?.value||'').trim();
+ const email=(document.getElementById('newAgentEmail')?.value||'').trim().toLowerCase();
+ const role=document.getElementById('newAgentRole')?.value||'agent';
+ const coop_active=document.getElementById('newAgentCoop')?.value==='true';
+ if(!full_name||!email){alert('Name and email are required.');return}
+ const btn=document.getElementById('createAgentBtn');if(btn){btn.disabled=true;btn.textContent='Sending Invitation...'}
+ const {data,error}=await sb.functions.invoke('admin-create-agent',{body:{full_name,email,role,coop_active,redirect_to:window.location.origin+window.location.pathname}});
+ if(error||data?.error){if(btn){btn.disabled=false;btn.textContent='Create Agent & Send Invitation'}alert('Could not create agent: '+(data?.error||error?.message||'Unknown error'));return}
+ await loadPortalData();closeModal();renderAgents();alert('Agent created. Invitation sent to '+email+'.');
+}
+
 function openAgentSetup(uid){
  const u=USERS.find(x=>x.id===uid);if(!u)return; const selectedLobs=new Set(agentLobIds(uid)), selectedCarriers=new Set(agentCarrierIds(uid));
  const lobBoxes=LOBS.map(l=>`<label style="display:block;padding:9px;border-bottom:1px solid var(--line)"><input class="agent-lob-box" type="checkbox" value="${l.id}" ${selectedLobs.has(l.id)?'checked':''} onchange="refreshAgentCarrierChoices()"> <b>${esc(l.name)}</b><br><small class="muted" style="margin-left:22px">${esc(l.description||'')}</small></label>`).join('');
